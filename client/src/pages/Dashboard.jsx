@@ -196,7 +196,7 @@ export default function Dashboard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
           {data.waiting_now?.length > 0 && (
             <div className="card card-pad">
-              <div className="card-title">{lang === 'ar' ? 'غرفة الانتظار' : 'Waiting room'} <span className="muted small">· checked in</span></div>
+              <div className="card-title">{lang === 'ar' ? 'غرفة الانتظار' : 'Waiting room'} <span className="muted small">· {lang === 'ar' ? 'تم التسجيل' : 'checked in'}</span></div>
               {data.waiting_now.map((a) => (
                 <div key={a.id} className="dash-list-item row-link" onClick={() => navigate(`/visits/${a.id}`)}>
                   <span className="dash-time">{a.local_time}</span>
