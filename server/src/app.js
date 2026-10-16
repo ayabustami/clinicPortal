@@ -13,10 +13,29 @@ function createApp() {
   app.disable('x-powered-by');
   if (config.env === 'production') app.set('trust proxy', 1);
 
-  // Security headers. CSP is disabled at the API level because the SPA is
-  // served separately in development; when serving the built SPA (production
-  // single-server mode) a strict CSP should be added at the reverse proxy.
-  app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'same-site' } }));
+  // Security headers. In production (single-server mode, SPA served from the
+  // API origin) we ship a strict Content-Security-Policy. In development CSP
+  // stays off so Vite's HMR/dev tooling keeps working.
+  const helmetOpts = config.env === 'production'
+    ? {
+        contentSecurityPolicy: {
+          directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", 'data:', 'blob:'],
+            fontSrc: ["'self'", 'data:'],
+            connectSrc: ["'self'"],
+            objectSrc: ["'none'"],
+            frameAncestors: ["'none'"],
+            baseUri: ["'self'"],
+            formAction: ["'self'"],
+          },
+        },
+        crossOriginResourcePolicy: { policy: 'same-site' },
+      }
+    : { contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'same-site' } };
+  app.use(helmet(helmetOpts));
 
   app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
