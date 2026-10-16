@@ -56,12 +56,22 @@ function signToken(user) {
   );
 }
 
+function tokenTtlMs() {
+  const ttl = String(config.tokenTtl || '12h').trim();
+  const m = /^(\d+)\s*(s|m|h|d)$/i.exec(ttl);
+  if (!m) return 12 * 60 * 60 * 1000;
+  const n = parseInt(m[1], 10);
+  const unit = m[2].toLowerCase();
+  const mult = unit === 's' ? 1000 : unit === 'm' ? 60000 : unit === 'h' ? 3600000 : 86400000;
+  return n * mult;
+}
+
 function setAuthCookie(res, token) {
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: config.cookieSameSite,
     secure: config.cookieSecure,
-    maxAge: 12 * 60 * 60 * 1000,
+    maxAge: tokenTtlMs(),
     path: '/',
   });
 }
@@ -268,5 +278,5 @@ module.exports = {
   signToken, setAuthCookie, clearAuthCookie, bumpTokenVersion,
   requireAuth, requireRole, requireClinic, publicUser,
   checkLoginRate, recordLoginFailure, recordLoginSuccess, resetRateLimits,
-  originGuard, clientIp, randomId,
+  originGuard, allowedOrigins, clientIp, randomId,
 };

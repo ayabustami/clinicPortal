@@ -3,7 +3,7 @@ export async function api(path, { method = 'GET', body, signal } = {}) {
   const res = await fetch(`/api${path}`, {
     method,
     signal,
-    credentials: 'same-origin',
+    credentials: 'include',
     headers: body !== undefined ? { 'Content-Type': 'application/json' } : {},
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });

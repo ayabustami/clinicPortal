@@ -18,7 +18,6 @@
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^12.11.1",
     "busboy": "^1.6.0",
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.5",
@@ -26,5 +25,8 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.23.1"
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^12.11.1"
   }
 }

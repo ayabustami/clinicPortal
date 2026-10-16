@@ -21,6 +21,27 @@ function createApp() {
   app.use(express.json({ limit: '1mb' }));
   app.use(cookieParser());
 
+  // CORS for cross-origin SPA deployments (CLIENT_ORIGIN). Same-origin
+  // requests are unaffected. Credentials are allowed so the session cookie
+  // travels with the request; origins are validated against the allowlist.
+  const { allowedOrigins } = require('./auth');
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin) {
+      const allowed = allowedOrigins(req);
+      if (allowed.has(String(origin).replace(/\/$/, ''))) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Vary', 'Origin');
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Requested-With');
+        res.setHeader('Access-Control-Max-Age', '600');
+      }
+    }
+    if (req.method === 'OPTIONS') return res.status(204).end();
+    next();
+  });
+
   // CSRF defense for cookie-authenticated state-changing requests
   app.use('/api', originGuard);
 
