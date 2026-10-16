@@ -14,12 +14,12 @@ router.post('/login', asyncH(async (req, res) => {
     email = V.email(body.email, 'email', { required: true });
   } catch (e) {
     // still count toward IP rate to blunt spraying with garbage payloads
-    A.recordLoginFailure(req, '');
+    await A.recordLoginFailure(req, '');
     throw e;
   }
   const password = V.str(body.password, 'password', { required: true, max: 200 });
 
-  const blocked = A.checkLoginRate(req, email);
+  const blocked = await A.checkLoginRate(req, email);
   if (blocked) throw new ApiError(429, blocked, 'rate_limited');
 
   // lower() matches the previous SQLite COLLATE NOCASE behavior
@@ -27,7 +27,7 @@ router.post('/login', asyncH(async (req, res) => {
   const ok = A.verifyPasswordSafe(password, user); // always runs a bcrypt compare
 
   if (!user || !ok) {
-    A.recordLoginFailure(req, email);
+    await A.recordLoginFailure(req, email);
     // Note: we never log the password or the attempted password.
     await audit(db, { clinicId: user ? user.clinic_id : null, userId: user ? user.id : null,
       action: 'auth.login.failed', entity: 'user', entityId: user ? user.id : null,
@@ -40,7 +40,7 @@ router.post('/login', asyncH(async (req, res) => {
     if (!clinic || clinic.status !== 'active') throw unauthorized('This clinic account is suspended');
   }
 
-  A.recordLoginSuccess(req, email);
+  await A.recordLoginSuccess(req, email);
   const token = A.signToken(user);
   A.setAuthCookie(res, token);
   await audit(db, { clinicId: user.clinic_id, userId: user.id, action: 'auth.login', entity: 'user', entityId: user.id });

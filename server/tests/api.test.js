@@ -714,7 +714,7 @@ test('sessions: logout + change-password revoke old cookies; wrong current passw
 
 test('rate limit: repeated bad logins for one email -> 429', async () => {
   const { resetRateLimits } = require('../src/auth');
-  resetRateLimits();
+  await resetRateLimits();
   const c = makeClient();
   let limited = 0;
   for (let i = 0; i < 9; i++) {
@@ -722,7 +722,7 @@ test('rate limit: repeated bad logins for one email -> 429', async () => {
     if (r.status === 429) limited++;
   }
   assert.ok(limited > 0, 'login rate limit never engaged');
-  resetRateLimits();
+  await resetRateLimits();
 });
 
 test('audit: owner sees trail with filters; receptionist 403; platform admin needs clinic_id', async () => {
