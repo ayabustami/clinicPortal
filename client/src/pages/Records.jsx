@@ -12,12 +12,13 @@ import AppointmentModal from '../components/AppointmentModal.jsx';
 const EMPTY_RX = { medication: '', dosage: '', frequency: '', duration: '', notes: '' };
 
 function RecordStatusBadge({ status }) {
+  const { lang } = useI18n();
   const approved = status === 'approved';
   return (
     <span className="badge" style={approved
       ? { background: 'var(--ok-soft)', color: 'var(--ok)', borderColor: '#d5e8b2' }
       : { background: 'var(--warn-soft)', color: 'var(--warn)', borderColor: '#fde4ad' }}>
-      {approved ? 'Approved' : 'Draft'}
+      {approved ? (lang === 'ar' ? 'معتمد' : 'Approved') : (lang === 'ar' ? 'مسودة' : 'Draft')}
     </span>
   );
 }
@@ -25,6 +26,7 @@ function RecordStatusBadge({ status }) {
 export function RecordModal({ onClose, onSaved, presetPatient, presetAppointmentId, editRecord }) {
   const { doctors, doctorProfile } = useClinicMeta();
   const { user } = useAuth();
+  const { lang } = useI18n();
   const toast = useToast();
   const isDoctor = user.role === 'doctor';
   const editing = !!editRecord;
@@ -66,9 +68,9 @@ export function RecordModal({ onClose, onSaved, presetPatient, presetAppointment
   async function requestClose() {
     if (!dirty) { onClose(); return; }
     const ok = await confirm({
-      title: 'Discard unsaved notes?',
-      message: 'This clinical record has unsaved changes (notes, diagnosis or prescriptions). Closing now will lose them.',
-      confirmLabel: 'Discard changes', danger: true,
+      title: lang === 'ar' ? 'تجاهل الملاحظات غير المحفوظة؟' : 'Discard unsaved notes?',
+      message: lang === 'ar' ? 'هذا السجل السريري يحتوي تغييرات غير محفوظة (ملاحظات، تشخيص أو وصفات). الإغلاق الآن سيؤدي إلى فقدانها.' : 'This clinical record has unsaved changes (notes, diagnosis or prescriptions). Closing now will lose them.',
+      confirmLabel: lang === 'ar' ? 'تجاهل التغييرات' : 'Discard changes', danger: true,
     });
     if (ok) onClose();
   }
@@ -106,9 +108,9 @@ export function RecordModal({ onClose, onSaved, presetPatient, presetAppointment
   async function submit(e, approve = false) {
     if (e) e.preventDefault();
     setError('');
-    if (!f.patient) { setError('Select a patient.'); return; }
-    if (!isDoctor && !f.doctor_id) { setError('Select the attending doctor.'); return; }
-    if (amendingApproved && !f.amendment_reason.trim()) { setError('An amendment reason is required to change a finalized record.'); return; }
+    if (!f.patient) { setError(lang === 'ar' ? 'اختر مريضاً.' : 'Select a patient.'); return; }
+    if (!isDoctor && !f.doctor_id) { setError(lang === 'ar' ? 'اختر الطبيب المعالج.' : 'Select the attending doctor.'); return; }
+    if (amendingApproved && !f.amendment_reason.trim()) { setError(lang === 'ar' ? 'سبب التعديل مطلوب لتغيير سجل معتمد.' : lang === 'ar' ? 'سبب التعديل مطلوب لتغيير سجل معتمد.' : 'An amendment reason is required to change a finalized record.'); return; }
     setBusy(true);
     try {
       const body = {
@@ -122,26 +124,26 @@ export function RecordModal({ onClose, onSaved, presetPatient, presetAppointment
         if (amendingApproved) body.amendment_reason = f.amendment_reason.trim();
         await api(`/records/${editRecord.id}`, { method: 'PUT', body });
         if (approve && !amendingApproved) await api(`/records/${editRecord.id}`, { method: 'PUT', body: { status: 'approved' } });
-        toast.success(amendingApproved ? 'Amendment saved to the record history.' : approve ? 'Record updated and approved.' : 'Record updated.');
+        toast.success(amendingApproved ? (lang === 'ar' ? 'تم حفظ التعديل في سجل السجل.' : 'Amendment saved to the record history.') : approve ? (lang === 'ar' ? 'تم تحديث السجل واعتماده.' : 'Record updated and approved.') : (lang === 'ar' ? 'تم تحديث السجل.' : 'Record updated.'));
       } else {
         if (presetAppointmentId) body.appointment_id = Number(presetAppointmentId);
         if (approve) body.status = 'approved';
         await api('/records', { method: 'POST', body });
-        toast.success(approve ? 'Clinical record saved and approved.' : 'Clinical record saved as draft.');
+        toast.success(approve ? lang === 'ar' ? 'تم حفظ السجل السريري واعتماده.' : 'Clinical record saved and approved.' : lang === 'ar' ? 'تم حفظ السجل السريري كمسودة.' : 'Clinical record saved as draft.');
       }
       onSaved();
     } catch (err) { setError(err.message); } finally { setBusy(false); }
   }
 
   return (
-    <Modal title={amendingApproved ? 'Amend finalized record' : editing ? 'Edit clinical record' : 'New clinical record'} onClose={requestClose} wide
+    <Modal title={amendingApproved ? lang === 'ar' ? 'تعديل سجل معتمد' : 'Amend finalized record' : editing ? (lang === 'ar' ? 'تعديل سجل سريري' : 'Edit clinical record') : (lang === 'ar' ? 'سجل سريري جديد' : 'New clinical record')} onClose={requestClose} wide
       footer={<>
         <button className="btn btn-outline" onClick={requestClose} disabled={busy}>Cancel</button>
         {amendingApproved ? (
-          <button className="btn btn-primary" onClick={(e) => submit(e, false)} disabled={busy}>{busy ? 'Saving…' : 'Save amendment'}</button>
+          <button className="btn btn-primary" onClick={(e) => submit(e, false)} disabled={busy}>{busy ? lang === 'ar' ? 'جارٍ الحفظ…' : 'Saving…' : lang === 'ar' ? 'حفظ التعديل' : 'Save amendment'}</button>
         ) : (
           <>
-            <button className="btn btn-outline" onClick={(e) => submit(e, false)} disabled={busy}>{editing ? 'Save draft changes' : 'Save as draft'}</button>
+            <button className="btn btn-outline" onClick={(e) => submit(e, false)} disabled={busy}>{editing ? lang === 'ar' ? 'حفظ تغييرات المسودة' : 'Save draft changes' : lang === 'ar' ? 'حفظ كمسودة' : 'Save as draft'}</button>
             <button className="btn btn-primary" onClick={(e) => submit(e, true)} disabled={busy}>{busy ? 'Saving…' : 'Save & approve'}</button>
           </>
         )}
@@ -220,6 +222,7 @@ export function RecordModal({ onClose, onSaved, presetPatient, presetAppointment
 
 /** Secure attachment manager for a medical record (upload / download / soft-delete). */
 function RecordAttachments({ recordId, canEdit, onChanged }) {
+  const { lang } = useI18n();
   const [items, setItems] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -246,7 +249,7 @@ function RecordAttachments({ recordId, canEdit, onChanged }) {
       const res = await fetch('/api/attachments', { method: 'POST', credentials: 'same-origin', body: fd });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error?.message || `Upload failed (${res.status})`);
-      toast.success('Attachment uploaded.');
+      toast.success(lang === 'ar' ? 'تم رفع المرفق.' : 'Attachment uploaded.');
       load(); onChanged?.();
     } catch (e) { toast.error(e.message); } finally { setBusy(false); if (fileRef.current) fileRef.current.value = ''; }
   }
@@ -254,7 +257,7 @@ function RecordAttachments({ recordId, canEdit, onChanged }) {
   async function remove(a) {
     try {
       await api(`/attachments/${a.id}`, { method: 'DELETE' });
-      toast.success('Attachment removed.');
+      toast.success(lang === 'ar' ? 'تم إزالة المرفق.' : 'Attachment removed.');
       load(); onChanged?.();
     } catch (e) { toast.error(e.message); }
   }
@@ -266,7 +269,7 @@ function RecordAttachments({ recordId, canEdit, onChanged }) {
         <b style={{ fontSize: 13.5, display: 'flex', gap: 7, alignItems: 'center' }}><IconPaperclip size={16}/> Attachments</b>
         {canEdit && (
           <label className="btn btn-outline btn-sm" style={{ cursor: 'pointer' }}>
-            <IconPlus size={14}/> {busy ? 'Uploading…' : 'Upload file'}
+            <IconPlus size={14}/> {busy ? lang === 'ar' ? 'جارٍ الرفع…' : 'Uploading…' : lang === 'ar' ? 'رفع ملف' : 'Upload file'}
             <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" hidden onChange={upload} disabled={busy} />
           </label>
         )}
@@ -295,6 +298,7 @@ function RecordAttachments({ recordId, canEdit, onChanged }) {
  * plan session is only PREFILLED into the appointment form.
  */
 function NextActions({ rec, onClose }) {
+  const { lang } = useI18n();
   const navigate = useNavigate();
   const toast = useToast();
   const [next, setNext] = useState(undefined); // undefined=loading | null=none | {plan,session}
@@ -332,7 +336,7 @@ function NextActions({ rec, onClose }) {
       )}
       <div className="next-actions mt-12">
         <button type="button" className="btn btn-primary" onClick={() => setShowBook(true)}>
-          <IconPlus size={15} /> {next ? `Book next: ${next.session.title}` : 'Book follow-up appointment'}
+          <IconPlus size={15} /> {next ? `Book next: ${next.session.title}` : lang === 'ar' ? 'حجز موعد متابعة' : 'Book follow-up appointment'}
         </button>
         <button type="button" className="btn btn-outline" onClick={() => go(`/patients/${rec.patient_id}?tab=plans`)}>
           {next ? 'Open plan & sessions' : 'Continue / new plan'}
@@ -362,7 +366,7 @@ function NextActions({ rec, onClose }) {
             plan_id: next?.plan?.id,
           }}
           onClose={() => setShowBook(false)}
-          onSaved={(a) => { setShowBook(false); setBooked(a); toast.success('Next appointment booked.'); onChanged?.(); }}
+          onSaved={(a) => { setShowBook(false); setBooked(a); toast.success(lang === 'ar' ? 'تم حجز الموعد التالي.' : 'Next appointment booked.'); onChanged?.(); }}
         />
       )}
     </>
@@ -370,6 +374,7 @@ function NextActions({ rec, onClose }) {
 }
 
 export function RecordDetail({ id, onClose, onEdit, onChanged }) {
+  const { lang } = useI18n();
   const { user } = useAuth();
   const { doctorProfile } = useClinicMeta();
   const toast = useToast();
@@ -389,15 +394,15 @@ export function RecordDetail({ id, onClose, onEdit, onChanged }) {
 
   async function approve() {
     const ok = await confirm({
-      title: 'Approve record',
-      message: 'Approving finalizes this record: from now on every content edit is recorded as an amendment with a mandatory reason, preserving the full history. Continue?',
+      title: lang === 'ar' ? 'اعتماد السجل' : 'Approve record',
+      message: lang === 'ar' ? 'الاعتماد يُنهي هذا السجل: من الآن فصاعداً كل تعديل للمحتوى يُسجل كتعديل مع سبب إلزامي، مع الحفاظ على السجل الكامل. متابعة؟' : 'Approving finalizes this record: from now on every content edit is recorded as an amendment with a mandatory reason, preserving the full history. Continue?',
       confirmLabel: 'Approve & finalize',
     });
     if (!ok) return;
     setBusy(true);
     try {
       await api(`/records/${id}`, { method: 'PUT', body: { status: 'approved' } });
-      toast.success('Record approved and finalized.');
+      toast.success(lang === 'ar' ? 'تم اعتماد السجل وإنهاؤه.' : 'Record approved and finalized.');
       invalidateTimelines();
       load(); onChanged?.();
     } catch (e) { toast.error(e.message); } finally { setBusy(false); }
@@ -432,7 +437,7 @@ export function RecordDetail({ id, onClose, onEdit, onChanged }) {
           <div className="appt-detail-row"><span className="k">Visit date</span><span className="v">{rec.visit_date}</span></div>
           <div className="appt-detail-row"><span className="k">Doctor</span><span className="v">{rec.doctor_name}</span></div>
           {rec.appointment_id && <div className="appt-detail-row"><span className="k">Appointment</span><span className="v muted">#{rec.appointment_id}</span></div>}
-          {[['Symptoms', rec.symptoms], ['Examination', rec.examination], ['Diagnosis', rec.diagnosis], ['Treatment', rec.treatment], ['Follow-up', rec.follow_up]].map(([k, v]) =>
+          {[[lang === 'ar' ? 'الأعراض' : 'Symptoms', rec.symptoms], [lang === 'ar' ? 'الفحص' : 'Examination', rec.examination], [lang === 'ar' ? 'التشخيص' : 'Diagnosis', rec.diagnosis], [lang === 'ar' ? 'العلاج' : 'Treatment', rec.treatment], [lang === 'ar' ? 'المتابعة' : 'Follow-up', rec.follow_up]].map(([k, v]) =>
             v ? <div className="appt-detail-row" key={k}><span className="k">{k}</span><span className="v">{v}</span></div> : null)}
           {rec.prescriptions.length > 0 && (
             <>
@@ -457,7 +462,7 @@ export function RecordDetail({ id, onClose, onEdit, onChanged }) {
                 return (
                   <div key={a.id} className="card card-pad mt-12" style={{ background: 'var(--surface-2)' }}>
                     <div className="flex-between">
-                      <b style={{ fontSize: 13 }}>{a.amended_by_name || 'Unknown'}</b>
+                      <b style={{ fontSize: 13 }}>{a.amended_by_name || lang === 'ar' ? 'غير معروف' : 'Unknown'}</b>
                       <span className="muted small">{new Date(a.amended_at).toLocaleString()}</span>
                     </div>
                     <div className="small mt-12"><b>Reason:</b> {a.reason}</div>
@@ -484,7 +489,7 @@ export default function Records() {
   const { user } = useAuth();
   const { doctors } = useClinicMeta();
   const [params, setParams] = useSearchParams();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const toast = useToast();
   const [records, setRecords] = useState(null);
   const [error, setError] = useState('');
@@ -556,7 +561,7 @@ export default function Records() {
       <div className="page-head">
         <div>
           <h1>Medical Records</h1>
-          <div className="desc">Clinical notes and prescriptions. {user.role === 'doctor' ? 'You see records you authored.' : ''} Access is restricted to authorized staff.</div>
+          <div className="desc">Clinical notes and prescriptions. {user.role === 'doctor' ? lang === 'ar' ? 'ترى السجلات التي أنتَ مؤلفها.' : 'You see records you authored.' : ''} Access is restricted to authorized staff.</div>
         </div>
         {canWrite && <button className="btn btn-primary" onClick={() => setShowNew(true)}><IconPlus size={16}/> New record</button>}
       </div>
@@ -571,7 +576,7 @@ export default function Records() {
         {error && <div className="form-error" style={{ margin: 14 }}>{error}</div>}
         {!records ? <Spinner label="Loading records…" /> : records.length === 0 ? (
           <EmptyState icon="📝" title="No clinical records">
-            {canWrite ? 'Create the first record after a consultation.' : 'Records appear here after consultations.'}
+            {canWrite ? lang === 'ar' ? 'أنشئ أول سجل بعد استشارة.' : 'Create the first record after a consultation.' : lang === 'ar' ? 'تظهر السجلات هنا بعد الاستشارات.' : 'Records appear here after consultations.'}
           </EmptyState>
         ) : (
           <div className="table-wrap">
