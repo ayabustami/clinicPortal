@@ -49,7 +49,19 @@ export function Modal({ title, onClose, children, footer, wide }) {
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') closeRef.current?.(); };
+    const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const onKey = (e) => {
+      if (e.key === 'Escape') { closeRef.current?.(); return; }
+      if (e.key !== 'Tab') return;
+      const box = boxRef.current;
+      if (!box) return;
+      const nodes = Array.from(box.querySelectorAll(FOCUSABLE)).filter((n) => n.offsetParent !== null || n === document.activeElement);
+      if (nodes.length === 0) return;
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
     window.addEventListener('keydown', onKey);
     document.body.style.overflow = 'hidden';
     // Focus management: remember the opener, focus the dialog, restore on close.
