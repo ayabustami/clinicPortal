@@ -89,16 +89,7 @@ export default function Login() {
               {busy ? t('login.signingIn') : t('login.submit')}
             </button>
           </form>
-          <div className="demo-accounts">
-            <h4>{t('login.demoHint')} — <span style={{ fontFamily: 'monospace' }}>Demo1234!</span></h4>
-            {DEMO_ACCOUNTS.map((a) => (
-              <button type="button" key={a.email} className="demo-chip"
-                onClick={() => { setEmail(a.email); setPassword('Demo1234!'); }}>
-                <span><b>{a.label}</b> · {a.clinic}</span>
-                <span className="muted">{a.email}</span>
-              </button>
-            ))}
-          </div>
+          
         </div>
       </div>
     </div>
