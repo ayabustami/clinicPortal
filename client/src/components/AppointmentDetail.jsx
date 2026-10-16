@@ -14,6 +14,7 @@ import { IconEdit, IconCheck, IconClock, IconAlert, IconFileText, IconInvoice, I
  * props: appointment, onClose, onChanged(appointment|null), onEdit(appointment)
  */
 const TYPE_LABEL = { new_visit: 'New visit', follow_up: 'Follow-up', consultation: 'Consultation', procedure: 'Procedure', emergency: 'Emergency' };
+const TYPE_LABEL_AR = { new_visit: 'زيارة جديدة', follow_up: 'متابعة', consultation: 'استشارة', procedure: 'إجراء', emergency: 'طوارئ' };
 
 export default function AppointmentDetail({ appointment: appt, onClose, onChanged, onEdit }) {
   const { user } = useAuth();
@@ -84,27 +85,27 @@ export default function AppointmentDetail({ appointment: appt, onClose, onChange
   /** Start visit: checked_in -> in_progress, then jump into the clinical note. */
   async function startVisit() {
     let ok = appt.status === 'in_progress';
-    if (!ok) ok = await setStatus('in_progress', 'Start visit', { silent: true });
+    if (!ok) ok = await setStatus('in_progress', lang === 'ar' ? 'بدء الزيارة' : 'Start visit', { silent: true });
     if (ok) navigate(`/records?patient_id=${appt.patient_id}&appointment_id=${appt.id}&new=1`);
   }
 
   /** Complete the visit, then offer invoicing (financial roles). */
   async function completeAndInvoice() {
-    const ok = await setStatus('completed', 'Complete visit', { silent: true });
+    const ok = await setStatus('completed', lang === 'ar' ? 'إكمال الزيارة' : 'Complete visit', { silent: true });
     if (ok && canInvoice) navigate(`/invoices?patient_id=${appt.patient_id}&appointment_id=${appt.id}`);
   }
 
   const next = {
     scheduled: [
-      ['confirmed', 'Confirm', 'btn-primary'],
-      ['checked_in', 'Check in', 'btn-outline'],
+      ['confirmed', lang === 'ar' ? 'تأكيد' : 'Confirm', 'btn-primary'],
+      ['checked_in', lang === 'ar' ? 'تسجيل وصول' : 'Check in', 'btn-outline'],
     ],
     confirmed: [
-      ['checked_in', 'Check in', 'btn-primary'],
+      ['checked_in', lang === 'ar' ? 'تسجيل وصول' : 'Check in', 'btn-primary'],
     ],
-    checked_in: canComplete ? [['in_progress', 'Start visit', 'btn-primary']] : [],
-    in_progress: canComplete ? [['completed', 'Complete visit', 'btn-primary']] : [],
-    cancelled: [['scheduled', 'Restore to scheduled', 'btn-outline']],
+    checked_in: canComplete ? [['in_progress', lang === 'ar' ? 'بدء الزيارة' : 'Start visit', 'btn-primary']] : [],
+    in_progress: canComplete ? [['completed', lang === 'ar' ? 'إكمال الزيارة' : 'Complete visit', 'btn-primary']] : [],
+    cancelled: [['scheduled', lang === 'ar' ? 'استعادة إلى مجدول' : 'Restore to scheduled', 'btn-outline']],
   }[appt.status] || [];
 
   return (
@@ -125,7 +126,7 @@ export default function AppointmentDetail({ appointment: appt, onClose, onChange
         <div className="flex" style={{ gap: 12 }}>
           <div style={{ fontSize: 16, fontWeight: 680 }}>
             {['owner', 'receptionist', 'doctor'].includes(user.role) && appt.patient_id ? (
-              <Link to={`/patients/${appt.patient_id}`} onClick={onClose} className="link">{appt.patient_name || 'Patient'}</Link>
+              <Link to={`/patients/${appt.patient_id}`} onClick={onClose} className="link">{appt.patient_name || (lang === 'ar' ? 'مريض' : 'Patient')}</Link>
             ) : (appt.patient_name || 'Patient')}
           </div>
           <StatusBadge status={appt.status} />
@@ -152,7 +153,7 @@ export default function AppointmentDetail({ appointment: appt, onClose, onChange
       {appt.patient_phone && <div className="appt-detail-row"><span className="k">Phone</span><span className="v" dir="ltr">{appt.patient_phone}</span></div>}
       <div className="appt-detail-row"><span className="k">Doctor</span><span className="v">{appt.doctor_name}</span></div>
       {appt.service_name && <div className="appt-detail-row"><span className="k">Service</span><span className="v">{appt.service_name}</span></div>}
-      {appt.appointment_type && <div className="appt-detail-row"><span className="k">Type</span><span className="v">{TYPE_LABEL[appt.appointment_type] || appt.appointment_type}</span></div>}
+      {appt.appointment_type && <div className="appt-detail-row"><span className="k">{lang === 'ar' ? 'النوع' : 'Type'}</span><span className="v">{(lang === 'ar' ? TYPE_LABEL_AR[appt.appointment_type] : TYPE_LABEL[appt.appointment_type]) || appt.appointment_type}</span></div>}
       {appt.treatment_session_id && (
         <div className="appt-detail-row"><span className="k">Plan session</span>
           <span className="v"><Link to={`/patients/${appt.patient_id}?tab=plans`}>Linked to session #{appt.treatment_session_id}</Link></span>
@@ -203,12 +204,12 @@ export default function AppointmentDetail({ appointment: appt, onClose, onChange
             </button>
           )}
           {canManage && ['scheduled', 'confirmed'].includes(appt.status) && (
-            <button className="btn btn-sm btn-danger-outline" disabled={busy} onClick={() => setStatus('cancelled', 'Cancel')}>
-              <IconAlert size={14} /> Cancel appointment
+            <button className="btn btn-sm btn-danger-outline" disabled={busy} onClick={() => setStatus('cancelled', lang === 'ar' ? 'إلغاء' : 'Cancel')}>
+              <IconAlert size={14} /> {lang === 'ar' ? 'إلغاء الموعد' : 'Cancel appointment'}
             </button>
           )}
           {canManage && startPassed && ['scheduled', 'confirmed'].includes(appt.status) && (
-            <button className="btn btn-sm btn-outline" disabled={busy} onClick={() => setStatus('no_show', 'Mark no-show')}>
+            <button className="btn btn-sm btn-outline" disabled={busy} onClick={() => setStatus('no_show', lang === 'ar' ? 'تسجيل عدم حضور' : 'Mark no-show')}>
               <IconClock size={14} /> No-show
             </button>
           )}
