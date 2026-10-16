@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import { Link } from 'react-router-dom';
 import { IconX, IconCheck, IconAlert, IconInfo } from './icons.jsx';
 import { STATUS_META } from '../format.js';
-import { useI18n } from '../i18n.jsx';
+import { useI18n, LangCtx } from '../i18n.jsx';
 
 /* ---------------- Spinner / loading ---------------- */
 export function Spinner({ label }) {
@@ -201,6 +201,30 @@ export function Breadcrumb({ items }) {
       ))}
     </nav>
   );
+}
+
+/* ---------------- Error boundary ---------------- */
+export class ErrorBoundary extends React.Component {
+  static contextType = LangCtx;
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error, info) { console.error('[ErrorBoundary]', error, info); }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="page" role="alert">
+          <div className="card card-pad">
+            <div className="card-title">⚠️ {(this.context?.lang === 'ar') ? 'حدث خطأ غير متوقع' : 'Something went wrong'}</div>
+            <p className="muted small mt-8">{this.state.error?.message || 'Unknown error'}</p>
+            <button className="btn btn-primary mt-12" onClick={() => { this.setState({ error: null }); window.location.reload(); }}>
+              {(this.context?.lang === 'ar') ? 'إعادة تحميل' : 'Reload'}
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 /* ---------------- Pagination ---------------- */

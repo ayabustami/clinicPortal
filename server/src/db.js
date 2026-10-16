@@ -55,6 +55,7 @@ function getPool() {
     connectionString: config.databaseUrl,
     ssl: sslConfigFor(config.databaseUrl),
     max: config.pgPoolMax,
+    statement_timeout: 30000,
     connectionTimeoutMillis: 10000,
     idleTimeoutMillis: 30000,
     application_name: 'clinic-portal-api',

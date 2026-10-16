@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import BrandSplash from './components/BrandSplash.jsx';
 import { AuthProvider, useAuth } from './auth.jsx';
 import { LangProvider } from './i18n.jsx';
-import { ToastProvider, ConfirmProvider } from './components/ui.jsx';
+import { ToastProvider, ConfirmProvider, ErrorBoundary } from './components/ui.jsx';
 import Layout from './components/Layout.jsx';
 import Login from './pages/Login.jsx';
 
@@ -49,6 +49,7 @@ export default function App() {
       <ToastProvider>
         <ConfirmProvider>
           <AuthProvider>
+            <ErrorBoundary>
             <Suspense fallback={PageFallback}>
               <Routes>
                 <Route path="/login" element={<Login />} />
@@ -75,6 +76,7 @@ export default function App() {
                 </Route>
               </Routes>
             </Suspense>
+            </ErrorBoundary>
           </AuthProvider>
         </ConfirmProvider>
       </ToastProvider>

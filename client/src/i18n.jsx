@@ -819,7 +819,7 @@ const DICT = {
   },
 };
 
-const LangCtx = createContext({ lang: 'en', dir: 'ltr', setLang: () => {}, t: (k) => k });
+export const LangCtx = createContext({ lang: 'en', dir: 'ltr', setLang: () => {}, t: (k) => k });
 
 export function LangProvider({ children }) {
   const [lang, setLangState] = useState(() => {
