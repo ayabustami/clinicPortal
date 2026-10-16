@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { cachedGet, invalidate } from '../apiCache.js';
 import { useAuth, useClinicMeta } from '../auth.jsx';
+import { useI18n } from '../i18n.jsx';
 import { Spinner, EmptyState, Modal, Field, Pagination, useToast } from '../components/ui.jsx';
 import { money } from '../format.js';
 import { IconPlus } from '../components/icons.jsx';
@@ -14,13 +15,16 @@ const INV_BADGE = {
 };
 
 export function InvoiceStatusBadge({ status }) {
+  const { lang } = useI18n();
   const m = INV_BADGE[status] || INV_BADGE.unpaid;
-  return <span className="badge" style={{ background: m.bg, color: m.fg, borderColor: m.border }}>{m.label}</span>;
+  const label = lang === 'ar' ? ({ paid: 'مدفوع', partial: 'مدفوع جزئياً', unpaid: 'غير مدفوع' }[status] || m.label) : m.label;
+  return <span className="badge" style={{ background: m.bg, color: m.fg, borderColor: m.border }}>{label}</span>;
 }
 
 export function InvoiceFormModal({ onClose, onSaved, presetPatientId, presetAppointmentId }) {
   const { services } = useClinicMeta();
   const toast = useToast();
+  const { lang } = useI18n();
   const [patient, setPatient] = useState(null);
   const [search, setSearch] = useState('');
   const [results, setResults] = useState([]);
@@ -77,7 +81,7 @@ export function InvoiceFormModal({ onClose, onSaved, presetPatientId, presetAppo
 
   async function submit(e) {
     e.preventDefault(); setError('');
-    if (!patient) { setError('Select a patient.'); return; }
+    if (!patient) { setError(lang === 'ar' ? 'اختر مريضاً.' : 'Select a patient.'); return; }
     setBusy(true);
     try {
       const body = {
@@ -91,25 +95,25 @@ export function InvoiceFormModal({ onClose, onSaved, presetPatientId, presetAppo
         })),
       };
       const res = await api('/invoices', { method: 'POST', body });
-      toast.success(`Invoice ${res.invoice.invoice_no} created.`);
+      toast.success(lang === 'ar' ? `تم إنشاء الفاتورة ${res.invoice.invoice_no}.` : `Invoice ${res.invoice.invoice_no} created.`);
       onSaved(res.invoice);
     } catch (err) { setError(err.message); } finally { setBusy(false); }
   }
 
   return (
-    <Modal title="New invoice" onClose={onClose} wide
+    <Modal title={lang === 'ar' ? 'فاتورة جديدة' : 'New invoice'} onClose={onClose} wide
       footer={<>
-        <span className="muted small" style={{ marginRight: 'auto' }}>Total: <b className="mono" style={{ color: 'var(--ink)' }}>{money(Math.round(total * 100))}</b></span>
-        <button className="btn btn-outline" onClick={onClose}>Cancel</button>
-        <button className="btn btn-primary" onClick={submit} disabled={busy}>{busy ? 'Creating…' : 'Create invoice'}</button>
+        <span className="muted small" style={{ marginRight: 'auto' }}>{lang === 'ar' ? 'المجموع:' : 'Total:'} <b className="mono" style={{ color: 'var(--ink)' }}>{money(Math.round(total * 100))}</b></span>
+        <button className="btn btn-outline" onClick={onClose}>{lang === 'ar' ? 'إلغاء' : 'Cancel'}</button>
+        <button className="btn btn-primary" onClick={submit} disabled={busy}>{busy ? (lang === 'ar' ? 'جارٍ الإنشاء…' : 'Creating…') : (lang === 'ar' ? 'إنشاء فاتورة' : 'Create invoice')}</button>
       </>}>
       {error && <div className="form-error">{error}</div>}
-      <Field label="Patient" required>
+      <Field label={lang === 'ar' ? 'المريض' : 'Patient'} required>
         {patient ? (
           <div className="combo-selected">{patient.first_name} {patient.last_name} <span className="muted small">· {patient.mrn}</span></div>
         ) : (
           <div className="combo">
-            <input className="input" placeholder="Search patient…" value={search} onChange={(e) => searchPatients(e.target.value)} />
+            <input className="input" placeholder={lang === 'ar' ? 'بحث عن مريض…' : 'Search patient…'} value={search} onChange={(e) => searchPatients(e.target.value)} />
             {results.length > 0 && (
               <div className="combo-list">
                 {results.map((p) => (
@@ -124,33 +128,34 @@ export function InvoiceFormModal({ onClose, onSaved, presetPatientId, presetAppo
       </Field>
 
       <div className="flex-between mb-12">
-        <b style={{ fontSize: 13.5 }}>Line items</b>
+        <b style={{ fontSize: 13.5 }}>{lang === 'ar' ? 'بنود الفاتورة' : 'Line items'}</b>
         <button type="button" className="btn btn-outline btn-sm" onClick={() => setItems([...items, { service_id: '', description: '', quantity: 1, unit_price: '' }])}>
-          <IconPlus size={14}/> Add line
+          <IconPlus size={14}/> {lang === 'ar' ? 'إضافة بند' : 'Add line'}
         </button>
       </div>
       {items.map((it, i) => (
         <div key={i} className="form-row inv-line-row">
-          <Field label={i === 0 ? 'Service' : ''}>
+          <Field label={i === 0 ? (lang === 'ar' ? 'الخدمة' : 'Service') : ''}>
             <select className="select" value={it.service_id} onChange={(e) => setItem(i, 'service_id', e.target.value)}>
-              <option value="">Custom</option>
+              <option value="">{lang === 'ar' ? 'مخصص' : 'Custom'}</option>
               {services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </Field>
-          <Field label={i === 0 ? 'Description' : ''}><input className="input" value={it.description} onChange={(e) => setItem(i, 'description', e.target.value)} maxLength={200} /></Field>
-          <Field label={i === 0 ? 'Qty' : ''}><input type="number" min="1" className="input" value={it.quantity} onChange={(e) => setItem(i, 'quantity', e.target.value)} /></Field>
-          <Field label={i === 0 ? 'Unit price' : ''}><input className="input" placeholder="0.00" value={it.unit_price} onChange={(e) => setItem(i, 'unit_price', e.target.value)} /></Field>
+          <Field label={i === 0 ? (lang === 'ar' ? 'الوصف' : 'Description') : ''}><input className="input" value={it.description} onChange={(e) => setItem(i, 'description', e.target.value)} maxLength={200} /></Field>
+          <Field label={i === 0 ? (lang === 'ar' ? 'الكمية' : 'Qty') : ''}><input type="number" min="1" className="input" value={it.quantity} onChange={(e) => setItem(i, 'quantity', e.target.value)} /></Field>
+          <Field label={i === 0 ? (lang === 'ar' ? 'سعر الوحدة' : 'Unit price') : ''}><input className="input" placeholder="0.00" value={it.unit_price} onChange={(e) => setItem(i, 'unit_price', e.target.value)} /></Field>
           <button type="button" className="btn btn-danger-outline btn-sm" style={{ marginBottom: 14 }}
             disabled={items.length === 1} onClick={() => setItems(items.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <Field label="Notes"><textarea className="textarea" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
+      <Field label={lang === 'ar' ? 'ملاحظات' : 'Notes'}><textarea className="textarea" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
     </Modal>
   );
 }
 
 export default function Invoices() {
   const { user } = useAuth();
+  const { lang } = useI18n();
   const [invoices, setInvoices] = useState(null);
   const [meta, setMeta] = useState({ page: 1, pages: 1, total: 0 });
   const [status, setStatus] = useState('');
@@ -179,28 +184,28 @@ export default function Invoices() {
     <div className="page">
       <div className="page-head">
         <div>
-          <h1>Billing</h1>
-          <div className="desc">Create invoices for visits and services, record payments, and track outstanding balances.</div>
+          <h1>{lang === 'ar' ? 'الفوترة' : 'Billing'}</h1>
+          <div className="desc">{lang === 'ar' ? 'أنشئ فواتير للزيارات والخدمات، وسجّل المدفوعات، وتتبع الأرصدة المستحقة.' : 'Create invoices for visits and services, record payments, and track outstanding balances.'}</div>
         </div>
         {['owner', 'accountant', 'doctor'].includes(user?.role) && (
-          <button className="btn btn-primary" onClick={() => setShowNew(true)}><IconPlus size={16}/> New invoice</button>
+          <button className="btn btn-primary" onClick={() => setShowNew(true)}><IconPlus size={16}/> {lang === 'ar' ? 'فاتورة جديدة' : 'New invoice'}</button>
         )}
       </div>
 
       <div className="card">
         <div className="flex" style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>
-          {[['', 'All'], ['unpaid', 'Unpaid'], ['partial', 'Partial'], ['paid', 'Paid']].map(([v, l]) => (
+          {[['', lang === 'ar' ? 'الكل' : 'All'], ['unpaid', lang === 'ar' ? 'غير مدفوع' : 'Unpaid'], ['partial', lang === 'ar' ? 'جزئي' : 'Partial'], ['paid', lang === 'ar' ? 'مدفوع' : 'Paid']].map(([v, l]) => (
             <button key={v} className={`btn btn-sm ${status === v ? 'btn-navy' : 'btn-outline'}`} onClick={() => setStatus(v)}>{l}</button>
           ))}
         </div>
         {error && <div className="form-error" style={{ margin: 14 }}>{error}</div>}
-        {!error && (!invoices ? <Spinner label="Loading invoices…" /> : invoices.length === 0 ? (
-          <EmptyState icon="🧾" title="No invoices in this view">Create an invoice after a completed visit.</EmptyState>
+        {!error && (!invoices ? <Spinner label={lang === 'ar' ? 'جارٍ تحميل الفواتير…' : 'Loading invoices…'} /> : invoices.length === 0 ? (
+          <EmptyState icon="🧾" title={lang === 'ar' ? 'لا توجد فواتير في هذا العرض' : 'No invoices in this view'}>{lang === 'ar' ? 'أنشئ فاتورة بعد زيارة مكتملة.' : 'Create an invoice after a completed visit.'}</EmptyState>
         ) : (
           <>
             <div className="table-wrap">
               <table className="tbl">
-                <thead><tr><th>Invoice</th><th>Patient</th><th>Issued</th><th className="num">Total</th><th className="num">Balance</th><th>Status</th></tr></thead>
+                <thead><tr><th>{lang === 'ar' ? 'الفاتورة' : 'Invoice'}</th><th>{lang === 'ar' ? 'المريض' : 'Patient'}</th><th>{lang === 'ar' ? 'تاريخ الإصدار' : 'Issued'}</th><th className="num">{lang === 'ar' ? 'المجموع' : 'Total'}</th><th className="num">{lang === 'ar' ? 'الرصيد' : 'Balance'}</th><th>{lang === 'ar' ? 'الحالة' : 'Status'}</th></tr></thead>
                 <tbody>
                   {invoices.map((inv) => (
                     <tr key={inv.id} className="row-link" onClick={() => navigate(`/invoices/${inv.id}`)}>
