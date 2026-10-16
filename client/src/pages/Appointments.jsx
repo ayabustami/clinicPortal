@@ -489,7 +489,7 @@ export default function Appointments() {
       </button>,
     );
     if (canManage && isOwn && ['scheduled', 'confirmed', 'checked_in'].includes(a.status)) {
-      acts.push(<button key="e" className="btn btn-outline btn-sm" title="Edit / reschedule" onClick={(e) => { e.stopPropagation(); setEditAppt(a); }}><IconEdit size={13} /></button>);
+      acts.push(<button key="e" className="btn btn-outline btn-sm" title="Edit / reschedule" aria-label="Edit / reschedule" onClick={(e) => { e.stopPropagation(); setEditAppt(a); }}><IconEdit size={13} /></button>);
     }
     // Visit workspace entry: every staff member who can see the row can open
     // the workspace; what it shows/adapts is permission-driven inside.
@@ -508,13 +508,13 @@ export default function Appointments() {
     // No-show: only once the slot time has actually passed (server enforces too),
     // never for upcoming appointments, and only for staff who may manage it.
     if (canManage && isOwn && ['scheduled', 'confirmed', 'checked_in', 'in_progress'].includes(a.status) && startHasPassed(a)) {
-      acts.push(<button key="ns" className="btn btn-danger-outline btn-sm" title={t('appt.noShow')} onClick={(e) => { e.stopPropagation(); patchStatus(a, 'no_show', t('appt.noShow')); }}><IconAlert size={13} /></button>);
+      acts.push(<button key="ns" className="btn btn-danger-outline btn-sm" title={t('appt.noShow')} aria-label={t('appt.noShow')} onClick={(e) => { e.stopPropagation(); patchStatus(a, 'no_show', t('appt.noShow')); }}><IconAlert size={13} /></button>);
     }
     if (canManage && isOwn && ['scheduled', 'confirmed'].includes(a.status)) {
-      acts.push(<button key="x" className="btn btn-danger-outline btn-sm" title={lang === 'ar' ? 'إلغاء الموعد' : 'Cancel appointment'} onClick={(e) => { e.stopPropagation(); patchStatus(a, 'cancelled', lang === 'ar' ? 'إلغاء' : 'Cancel'); }}><IconX size={13} /></button>);
+      acts.push(<button key="x" className="btn btn-danger-outline btn-sm" title={lang === 'ar' ? 'إلغاء الموعد' : 'Cancel appointment'} aria-label={lang === 'ar' ? 'إلغاء الموعد' : 'Cancel appointment'} onClick={(e) => { e.stopPropagation(); patchStatus(a, 'cancelled', lang === 'ar' ? 'إلغاء' : 'Cancel'); }}><IconX size={13} /></button>);
     }
     if (canManage && isOwn && a.status === 'cancelled') {
-      acts.push(<button key="r" className="btn btn-outline btn-sm" title={t('appt.restore')} onClick={(e) => { e.stopPropagation(); patchStatus(a, 'scheduled', t('appt.restore')); }}><IconClock size={13} /></button>);
+      acts.push(<button key="r" className="btn btn-outline btn-sm" title={t('appt.restore')} aria-label={t('appt.restore')} onClick={(e) => { e.stopPropagation(); patchStatus(a, 'scheduled', t('appt.restore')); }}><IconClock size={13} /></button>);
     }
     return acts;
   }
