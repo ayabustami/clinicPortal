@@ -113,6 +113,7 @@ export const useToast = () => useContext(ToastCtx);
 /* ---------------- Confirm dialog ---------------- */
 const ConfirmCtx = createContext(null);
 export function ConfirmProvider({ children }) {
+  const { lang } = useI18n();
   const [state, setState] = useState(null);
   const [promptValue, setPromptValue] = useState('');
   const confirm = useCallback((opts) => {
@@ -127,17 +128,17 @@ export function ConfirmProvider({ children }) {
       {children}
       {state && (
         <Modal
-          title={state.title || 'Please confirm'}
+          title={state.title || (lang === 'ar' ? 'يرجى التأكيد' : 'Please confirm')}
           onClose={() => close(false)}
           footer={
             <>
-              <button className="btn btn-outline" onClick={() => close(false)}>Cancel</button>
+              <button className="btn btn-outline" onClick={() => close(false)}>{lang === 'ar' ? 'إلغاء' : 'Cancel'}</button>
               <button
                 className={`btn ${state.danger ? 'btn-danger' : 'btn-primary'}`}
                 disabled={!!state.prompt && state.prompt.required && !promptValue.trim()}
                 onClick={() => close(state.prompt ? promptValue.trim() : true)}
               >
-                {state.confirmLabel || 'Confirm'}
+                {state.confirmLabel || (lang === 'ar' ? 'تأكيد' : 'Confirm')}
               </button>
             </>
           }
