@@ -16,7 +16,7 @@ const FDI = [
 ].flat().sort((a, b) => a - b);
 
 const PLAN_STATUS_LABEL = {
-  draft: 'Draft', pending_approval: 'Pending approval', approved: 'Approved',
+  draft: lang === 'ar' ? 'مسودة' : 'Draft', pending_approval: 'Pending approval', approved: 'Approved',
   in_progress: 'In progress', completed: 'Completed', cancelled: 'Cancelled',
 };
 const SESSION_LABEL = { planned: 'Planned', scheduled: 'Scheduled', in_progress: 'In progress', completed: 'Completed', cancelled: 'Cancelled' };
@@ -72,6 +72,7 @@ function StatusPill({ map, status }) {
 /* ------------------------------------------------------------------ */
 function PlanBuilder({ patientId, defaultAppointmentId, onClose, onCreated }) {
   const { user } = useAuth();
+  const { lang } = useI18n();
   const { doctors, services } = useClinicMeta();
   const toast = useToast();
   const [title, setTitle] = useState('');
@@ -99,7 +100,7 @@ function PlanBuilder({ patientId, defaultAppointmentId, onClose, onCreated }) {
   }
 
   function addItem() {
-    if (!draftItem.procedure_label.trim() && !draftItem.service_id) { toast.error('Choose a service or type a procedure name.'); return; }
+    if (!draftItem.procedure_label.trim() && !draftItem.service_id) { toast.error(lang === 'ar' ? 'اختر خدمة أو اكتب اسم إجراء.' : 'Choose a service or type a procedure name.'); return; }
     // duplicate guard (client-side mirror of the server rule)
     const dup = items.find((it) => String(it.service_id || '') === String(draftItem.service_id || '')
       && String(it.tooth_number || '') === String(draftItem.tooth_number || '')
@@ -119,8 +120,8 @@ function PlanBuilder({ patientId, defaultAppointmentId, onClose, onCreated }) {
 
   async function create() {
     setError('');
-    if (!title.trim()) { setError('A plan title is required.'); return; }
-    if (!items.length) { setError('Add at least one procedure to the plan.'); return; }
+    if (!title.trim()) { setError(lang === 'ar' ? 'عنوان الخطة مطلوب.' : 'A plan title is required.'); return; }
+    if (!items.length) { setError(lang === 'ar' ? 'أضف إجراءً واحداً على الأقل إلى الخطة.' : 'Add at least one procedure to the plan.'); return; }
     setBusy(true);
     try {
       const res = await api('/plans', {
@@ -146,7 +147,7 @@ function PlanBuilder({ patientId, defaultAppointmentId, onClose, onCreated }) {
           })),
         },
       });
-      toast.success('Draft treatment plan created.');
+      toast.success(lang === 'ar' ? 'تم إنشاء مسودة خطة العلاج.' : 'Draft treatment plan created.');
       onCreated(res.plan);
     } catch (e) { setError(e.message); } finally { setBusy(false); }
   }
@@ -155,7 +156,7 @@ function PlanBuilder({ patientId, defaultAppointmentId, onClose, onCreated }) {
     <Modal title="New treatment plan" onClose={onClose} wide footer={
       <>
         <button className="btn btn-outline" onClick={onClose} disabled={busy}>Cancel</button>
-        <button className="btn btn-primary" onClick={create} disabled={busy}>{busy ? 'Creating…' : 'Create draft plan'}</button>
+        <button className="btn btn-primary" onClick={create} disabled={busy}>{busy ? (lang === 'ar' ? 'جارٍ الإنشاء…' : 'Creating…') : (lang === 'ar' ? 'إنشاء مسودة خطة' : 'Create draft plan')}</button>
       </>
     }>
       {error && <div className="form-error" role="alert">{error}</div>}
@@ -190,7 +191,7 @@ function PlanBuilder({ patientId, defaultAppointmentId, onClose, onCreated }) {
           </span>
         ))}
         <button type="button" className="btn btn-outline btn-sm" onClick={() => {
-          const n = prompt('Session title', `Session ${sessions.length + 1}`);
+          const n = prompt(lang === 'ar' ? 'عنوان الجلسة' : 'Session title', `Session ${sessions.length + 1}`);
           if (n && n.trim()) setSessions((xs) => [...xs, n.trim()]);
         }}><IconPlus size={13} /> Add session</button>
       </div>
@@ -204,7 +205,7 @@ function PlanBuilder({ patientId, defaultAppointmentId, onClose, onCreated }) {
               <tr key={it._k}>
                 <td>{it.procedure_label || services.find((s) => String(s.id) === it.service_id)?.name || '—'}</td>
                 <td className="mono">{it.tooth_number ? `#${it.tooth_number} ${(it.surfaces || []).join('')}` : ''}</td>
-                <td>{it.session_index !== '' ? `#${Number(it.session_index) + 1} ${sessions[Number(it.session_index)]}` : 'Unassigned'}</td>
+                <td>{it.session_index !== '' ? `#${Number(it.session_index) + 1} ${sessions[Number(it.session_index)]}` : lang === 'ar' ? 'غير مُسنَد' : 'Unassigned'}</td>
                 <td><PriorityBadge p={it.priority} /></td>
                 <td style={{ textAlign: 'right' }} className="mono">{it.duration_min ? Number(it.duration_min) * qtyOf(it) : '—'}</td>
                 <td style={{ textAlign: 'right' }}>
@@ -299,7 +300,7 @@ function CompleteSessionDialog({ plan, session, onClose, onDone }) {
   async function submit() {
     const performed = Object.entries(choices).filter(([, v]) => v === 'performed').map(([k]) => Number(k));
     const postponed = Object.entries(choices).filter(([, v]) => v === 'postponed').map(([k]) => Number(k));
-    if (!performed.length && !postponed.length) { setError('Mark at least one procedure as performed or postponed.'); return; }
+    if (!performed.length && !postponed.length) { setError(lang === 'ar' ? 'علّم إجراءً واحداً على الأقل كمنفذ أو مؤجل.' : 'Mark at least one procedure as performed or postponed.'); return; }
     setBusy(true);
     setError('');
     try {
@@ -315,7 +316,7 @@ function CompleteSessionDialog({ plan, session, onClose, onDone }) {
     <Modal title={`Complete “${session.title}”`} onClose={onClose} footer={
       <>
         <button className="btn btn-outline" onClick={onClose} disabled={busy}>Cancel</button>
-        <button className="btn btn-primary" onClick={submit} disabled={busy}>{busy ? 'Saving…' : 'Confirm completion'}</button>
+        <button className="btn btn-primary" onClick={submit} disabled={busy}>{busy ? (lang === 'ar' ? 'جارٍ الحفظ…' : 'Saving…') : (lang === 'ar' ? 'تأكيد الإكمال' : 'Confirm completion')}</button>
       </>
     }>
       {error && <div className="form-error" role="alert">{error}</div>}
@@ -451,6 +452,7 @@ function SessionDetailDialog({ plan, session, onClose }) {
 /* ------------------------------------------------------------------ */
 function PlanCard({ plan, focus, onReplace, onChanged }) {
   const { user } = useAuth();
+  const { lang } = useI18n();
   const toast = useToast();
   const confirm = useConfirm();
   const [open, setOpen] = useState(Boolean(focus));
@@ -466,7 +468,7 @@ function PlanCard({ plan, focus, onReplace, onChanged }) {
     setBusyAction(path);
     try {
       const res = await api(path, { method, body });
-      toast.success(okMsg || 'Plan updated.');
+      toast.success(okMsg || lang === 'ar' ? 'تم تحديث الخطة.' : 'Plan updated.');
       if (res?.plan) onReplace(res.plan);
       invalidateTimelines();
       onChanged?.();
@@ -474,9 +476,9 @@ function PlanCard({ plan, focus, onReplace, onChanged }) {
   }
 
   async function cancelPlan() {
-    const reason = await promptReason('Cancel treatment plan', `Why is “${plan.title}” being cancelled? (kept in the plan history)`);
+    const reason = await promptReason(lang === 'ar' ? 'إلغاء خطة العلاج' : 'Cancel treatment plan', `Why is “${plan.title}” being cancelled? (kept in the plan history)`);
     if (!reason) return;
-    act(`/plans/${plan.id}/cancel`, 'POST', { reason }, 'Plan cancelled.');
+    act(`/plans/${plan.id}/cancel`, 'POST', { reason }, lang === 'ar' ? 'تم إلغاء الخطة.' : 'Plan cancelled.');
   }
   function promptReason(title, msg) {
     return new Promise((resolve) => {
@@ -489,7 +491,7 @@ function PlanCard({ plan, focus, onReplace, onChanged }) {
     setBusyAction(`move-${item.id}`);
     try {
       const res = await api(`/plans/${plan.id}/items/${item.id}`, { method: 'PUT', body: { session_id: sessionId } });
-      toast.success('Procedure moved.');
+      toast.success(lang === 'ar' ? 'تم نقل الإجراء.' : 'Procedure moved.');
       onReplace(res.plan);
     } catch (e) { toast.error(e.message); } finally { setBusyAction(''); }
   }
@@ -502,7 +504,7 @@ function PlanCard({ plan, focus, onReplace, onChanged }) {
       const r1 = await api(`/plans/${plan.id}/sessions/${session.id}`, { method: 'PUT', body: { position: target.position } });
       await api(`/plans/${plan.id}/sessions/${target.id}`, { method: 'PUT', body: { position: session.position } });
       const res = await api(`/plans/${plan.id}`);
-      toast.success('Session order updated.');
+      toast.success(lang === 'ar' ? 'تم تحديث ترتيب الجلسات.' : 'Session order updated.');
       onReplace(res.plan || r1.plan);
     } catch (e) { toast.error(e.message); } finally { setBusyAction(''); }
   }
@@ -518,7 +520,7 @@ function PlanCard({ plan, focus, onReplace, onChanged }) {
           <StatusPill map={PLAN_STATUS_LABEL} status={plan.status} />{' '}
           {plan.revision_of ? <span className="badge" style={{ background: "#f1f5f9", color: "#475569", borderColor: "#dbe2ea" }}>rev of #{plan.revision_of}</span> : null}
           <div className="muted small" style={{ marginTop: 3 }}>
-            {plan.responsible_doctor_name || 'Unassigned'} · {plan.progress.completed_items}/{plan.progress.total_items} procedures ·{' '}
+            {plan.responsible_doctor_name || lang === 'ar' ? 'غير مُسنَد' : 'Unassigned'} · {plan.progress.completed_items}/{plan.progress.total_items} procedures ·{' '}
             {money(plan.estimated_total_cents)}{plan.discount_cents ? ` (−${money(plan.discount_cents)} discount)` : ''} · est. {plan.estimated_min} min
           </div>
           <div className="progress" role="progressbar" aria-valuenow={plan.progress.percent} aria-valuemin={0} aria-valuemax={100} aria-label="Plan progress" style={{ marginTop: 6 }}>
@@ -538,20 +540,20 @@ function PlanCard({ plan, focus, onReplace, onChanged }) {
                 <>
                   <button className="btn btn-outline btn-sm" disabled={!!busyAction} onClick={() => act(`/plans/${plan.id}/submit`, 'POST', undefined, 'Plan submitted for approval.')}>Submit for approval</button>
                   <button className="btn btn-primary btn-sm" disabled={!!busyAction} onClick={async () => {
-                    const ok = await confirm({ title: 'Approve treatment plan', message: `Approve “${plan.title}” (estimate ${money(plan.estimated_total_cents)})? Approved plans can be scheduled and performed.`, confirmLabel: 'Approve plan' });
+                    const ok = await confirm({ title: lang === 'ar' ? 'اعتماد خطة العلاج' : 'Approve treatment plan', message: `Approve “${plan.title}” (estimate ${money(plan.estimated_total_cents)})? Approved plans can be scheduled and performed.`, confirmLabel: lang === 'ar' ? 'اعتماد الخطة' : 'Approve plan' });
                     if (ok) act(`/plans/${plan.id}/approve`, 'POST', undefined, 'Plan approved.');
                   }}>Approve</button>
                 </>
               )}
               {plan.status === 'pending_approval' && (
                 <button className="btn btn-primary btn-sm" disabled={!!busyAction} onClick={async () => {
-                  const ok = await confirm({ title: 'Approve treatment plan', message: `Approve “${plan.title}” (estimate ${money(plan.estimated_total_cents)})? Approved plans can be scheduled and performed.`, confirmLabel: 'Approve plan' });
+                  const ok = await confirm({ title: lang === 'ar' ? 'اعتماد خطة العلاج' : 'Approve treatment plan', message: `Approve “${plan.title}” (estimate ${money(plan.estimated_total_cents)})? Approved plans can be scheduled and performed.`, confirmLabel: lang === 'ar' ? 'اعتماد الخطة' : 'Approve plan' });
                   if (ok) act(`/plans/${plan.id}/approve`, 'POST', undefined, 'Plan approved.');
                 }}>Approve plan</button>
               )}
               {editable && <button className="btn btn-outline btn-sm" onClick={() => setAddingItem(true)}><IconPlus size={13} /> Add procedure</button>}
               {editable && <button className="btn btn-outline btn-sm" disabled={!!busyAction}
-                onClick={() => act(`/plans/${plan.id}/sessions`, 'POST', { title: `Session ${plan.sessions.length + 1}` }, 'Session added.')}>
+                onClick={() => act(`/plans/${plan.id}/sessions`, 'POST', { title: `Session ${plan.sessions.length + 1}` }, lang === 'ar' ? 'تمت إضافة الجلسة.' : 'Session added.')}>
                 <IconPlus size={13} /> Split into new session
               </button>}
               {['approved', 'completed', 'cancelled'].includes(plan.status) && plan.status !== 'cancelled' && (
@@ -667,7 +669,7 @@ function AddItemDialog({ plan, onClose, onDone }) {
           session_id: f.session_id ? Number(f.session_id) : undefined,
         },
       });
-      toast.success('Procedure added to the plan.');
+      toast.success(lang === 'ar' ? 'تمت إضافة الإجراء إلى الخطة.' : 'Procedure added to the plan.');
       onDone(res.plan);
     } catch (e) { setError(e.message); } finally { setBusy(false); }
   }
@@ -679,7 +681,7 @@ function AddItemDialog({ plan, onClose, onDone }) {
     <Modal title={`Add procedure — ${plan.title}`} onClose={onClose} wide footer={
       <>
         <button className="btn btn-outline" onClick={onClose} disabled={busy}>Cancel</button>
-        <button className="btn btn-primary" onClick={submit} disabled={busy}>{busy ? 'Adding…' : 'Add procedure'}</button>
+        <button className="btn btn-primary" onClick={submit} disabled={busy}>{busy ? (lang === 'ar' ? 'جارٍ الإضافة…' : 'Adding…') : (lang === 'ar' ? 'إضافة إجراء' : 'Add procedure')}</button>
       </>
     }>
       {error && <div className="form-error" role="alert">{error}</div>}
@@ -742,6 +744,7 @@ function AddItemDialog({ plan, onClose, onDone }) {
 /* ------------------------------------------------------------------ */
 export default function TreatmentPlans({ patientId, focusPlanId, defaultAppointmentId, onChanged }) {
   const { user } = useAuth();
+  const { lang } = useI18n();
   const [plans, setPlans] = useState(null);
   const [error, setError] = useState('');
   const [building, setBuilding] = useState(false);
@@ -783,7 +786,7 @@ export default function TreatmentPlans({ patientId, focusPlanId, defaultAppointm
         <div className="muted small">Plan totals are estimates. Invoicing is always separate and based on performed work.</div>
         {canClinical && <button className="btn btn-primary" onClick={() => setBuilding(true)}><IconPlus size={15} /> New plan</button>}
       </div>
-      {plans.length === 0 && <EmptyState icon="🗂" title="No treatment plans yet">{canClinical ? 'Create the first plan from the service catalog.' : ''}</EmptyState>}
+      {plans.length === 0 && <EmptyState icon="🗂" title="No treatment plans yet">{canClinical ? lang === 'ar' ? 'أنشئ أول خطة من كتالوج الخدمات.' : 'Create the first plan from the service catalog.' : ''}</EmptyState>}
       {plans.map((p) => (
         <PlanCard key={p.id} plan={p} focus={focusPlanId ? Number(focusPlanId) === p.id : p.status !== 'completed' && p.status !== 'cancelled'}
           onReplace={replace} onChanged={load} />
