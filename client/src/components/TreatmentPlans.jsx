@@ -19,9 +19,15 @@ const PLAN_STATUS_LABEL = {
   draft: lang === 'ar' ? 'مسودة' : 'Draft', pending_approval: 'Pending approval', approved: 'Approved',
   in_progress: 'In progress', completed: 'Completed', cancelled: 'Cancelled',
 };
-const SESSION_LABEL = { planned: 'Planned', scheduled: 'Scheduled', in_progress: 'In progress', completed: 'Completed', cancelled: 'Cancelled' };
-const ITEM_LABEL = { proposed: 'Proposed', approved: 'Approved', scheduled: 'Scheduled', completed: 'Completed', cancelled: 'Cancelled', postponed: 'Postponed' };
-const ITEM_PRIORITY_LABEL = { urgent: 'Urgent', high: 'High', routine: 'Routine', low: 'Low' };
+const SESSION_LABEL = (lang) => lang === 'ar'
+  ? { planned: 'مخطط', scheduled: 'مجدول', in_progress: 'قيد التنفيذ', completed: 'مكتمل', cancelled: 'ملغى' }
+  : { planned: 'Planned', scheduled: 'Scheduled', in_progress: 'In progress', completed: 'Completed', cancelled: 'Cancelled' };
+const ITEM_LABEL = (lang) => lang === 'ar'
+  ? { proposed: 'مقترح', approved: 'معتمد', scheduled: 'مجدول', completed: 'مكتمل', cancelled: 'ملغى', postponed: 'مؤجل' }
+  : { proposed: 'Proposed', approved: 'Approved', scheduled: 'Scheduled', completed: 'Completed', cancelled: 'Cancelled', postponed: 'Postponed' };
+const ITEM_PRIORITY_LABEL = (lang) => lang === 'ar'
+  ? { urgent: 'عاجل', high: 'عالي', routine: 'روتيني', low: 'منخفض' }
+  : { urgent: 'Urgent', high: 'High', routine: 'Routine', low: 'Low' };
 const PRIORITY_STYLE = {
   urgent:  { bg: '#fdecea', fg: '#991b1b', bd: '#f3c1c1' },
   high:    { bg: '#fff7e6', fg: '#a16207', bd: '#fde4ad' },
@@ -31,7 +37,7 @@ const PRIORITY_STYLE = {
 function PriorityBadge({ p }) {
   if (!p) return null;
   const st = PRIORITY_STYLE[p] || PRIORITY_STYLE.routine;
-  return <span className="badge" style={{ background: st.bg, color: st.fg, borderColor: st.bd }}>{ITEM_PRIORITY_LABEL[p] || p}</span>;
+  return <span className="badge" style={{ background: st.bg, color: st.fg, borderColor: st.bd }}>{ITEM_PRIORITY_LABEL(lang)[p] || p}</span>;
 }
 /** E: group procedures by tooth (FDI order); tooth-less items land in "Full mouth / general". */
 function groupByTooth(items) {
@@ -107,7 +113,7 @@ function PlanBuilder({ patientId, defaultAppointmentId, onClose, onCreated }) {
       && (it.surfaces || []).slice().sort().join('') === (draftItem.surfaces || []).slice().sort().join('')
       && String(it.session_index || '') === String(draftItem.session_index || ''));
     if (dup) {
-      toast.error('That exact procedure (same service, tooth, surfaces, session) is already on the plan. Change the quantity on the existing line or adjust tooth/surfaces instead.');
+      toast.error(lang === 'ar' ? 'هذا الإجراء (نفس الخدمة، السن، الأسطح، الجلسة) موجود بالفعل في الخطة. غيّر الكمية في السطر الموجود أو عدّل السن/الأسطح.' : 'That exact procedure (same service, tooth, surfaces, session) is already on the plan. Change the quantity on the existing line or adjust tooth/surfaces instead.');
       return;
     }
     setItems((xs) => [...xs, { ...draftItem, _k: Math.random().toString(36).slice(2) }]);
@@ -270,7 +276,7 @@ function PlanBuilder({ patientId, defaultAppointmentId, onClose, onCreated }) {
           </Field>
           <Field label="Priority">
             <select className="select" aria-label="Item priority" value={draftItem.priority} onChange={(e) => setDraftItem({ ...draftItem, priority: e.target.value })}>
-              {Object.entries(ITEM_PRIORITY_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              {Object.entries(ITEM_PRIORITY_LABEL(lang)).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </Field>
           <Field label="Session">
@@ -329,7 +335,7 @@ function CompleteSessionDialog({ plan, session, onClose, onDone }) {
         <div key={it.id} className="dash-list-item" style={{ alignItems: 'flex-start' }}>
           <span className="who" style={{ minWidth: 0 }}>
             <b>{it.procedure_label || it.service_name}</b>
-            <span>{it.tooth_number ? `Tooth ${it.tooth_number}${it.surfaces ? ` · ${it.surfaces}` : ''} · ` : ''}{money(it.price_cents)} · {ITEM_LABEL[it.status]}</span>
+            <span>{it.tooth_number ? `Tooth ${it.tooth_number}${it.surfaces ? ` · ${it.surfaces}` : ''} · ` : ''}{money(it.price_cents)} · {ITEM_LABEL(lang)[it.status]}</span>
           </span>
           <span className="flex" style={{ gap: 6 }} role="radiogroup" aria-label={`Outcome for ${it.procedure_label}`}>
             <button type="button" role="radio" aria-checked={choices[it.id] === 'performed'}
@@ -365,7 +371,7 @@ function ItemRow({ it, plan, canClinical, busyAction, moveItem, onChanged }) {
         <b>{it.procedure_label || it.service_name || '—'}</b>
         <span>
           {it.tooth_number ? `Tooth ${it.tooth_number}${it.surfaces ? ` · ${it.surfaces}` : ''} · ` : ''}
-          {qty > 1 ? `${qty} × ` : ''}{money(it.price_cents)}{qty > 1 ? ` = ${money(lineCents(it))}` : ''} · {it.duration_min ? `${Number(it.duration_min) * qty} min` : '—'} · {ITEM_LABEL[it.status] || it.status}
+          {qty > 1 ? `${qty} × ` : ''}{money(it.price_cents)}{qty > 1 ? ` = ${money(lineCents(it))}` : ''} · {it.duration_min ? `${Number(it.duration_min) * qty} min` : '—'} · {ITEM_LABEL(lang)[it.status] || it.status}
         </span>
       </span>
       <span className="flex" style={{ gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -381,7 +387,7 @@ function ItemRow({ it, plan, canClinical, busyAction, moveItem, onChanged }) {
           <select className="select" style={{ width: 'auto', padding: '3px 6px', fontSize: 12 }} aria-label={`Priority for ${it.procedure_label || 'item'}`}
             value={it.priority || 'routine'} disabled={!!busyAction}
             onChange={(e) => put({ priority: e.target.value })}>
-            {Object.entries(ITEM_PRIORITY_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            {Object.entries(ITEM_PRIORITY_LABEL(lang)).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         )}
         {editableNow && (
@@ -402,7 +408,7 @@ function ToothGroups({ items, ...rowProps }) {
   return groupByTooth(items).map(([toothKey, its]) => (
     <div key={toothKey}>
       <div className="muted small" style={{ fontWeight: 700, letterSpacing: '.02em', margin: '6px 0 2px' }}>
-        {toothKey === '__general__' ? 'Full mouth / general' : `Tooth ${toothKey}`}
+        {toothKey === '__general__' ? lang === 'ar' ? 'الفم بالكامل / عام' : 'Full mouth / general' : lang === 'ar' ? `سن ${toothKey}` : `Tooth ${toothKey}`}
         <span style={{ fontWeight: 400 }}> · {its.length} procedure(s){its.length > 1 ? ` · ${money(its.reduce((a, x) => a + lineCents(x), 0))}` : ''}</span>
       </div>
       {its.map((it) => <ItemRow key={it.id} it={it} {...rowProps} />)}
@@ -419,7 +425,7 @@ function SessionDetailDialog({ plan, session, onClose }) {
     <Modal title={`Session #${session.position} · ${session.title}`} onClose={onClose}
       footer={<button className="btn btn-outline" onClick={onClose}>Close</button>}>
       <div className="flex" style={{ gap: 8, alignItems: 'center', marginBottom: 10 }}>
-        <StatusPill map={SESSION_LABEL} status={session.status} />
+        <StatusPill map={SESSION_LABEL(lang)} status={session.status} />
         <span className="muted small">
           {session.item_count} procedure(s) · {session.completed_items} completed · {money(session.subtotal_cents)} · est. {session.estimated_min} min
         </span>
@@ -435,7 +441,7 @@ function SessionDetailDialog({ plan, session, onClose }) {
                 <b>{it.procedure_label || it.service_name || '—'}</b>
                 <span>
                   {it.tooth_number ? `Tooth ${it.tooth_number}${it.surfaces ? ` · ${it.surfaces}` : ''} · ` : ''}
-                  {(Number(it.quantity) || 1) > 1 ? `${it.quantity} × ${money(it.price_cents)} = ${money(lineCents(it))}` : money(it.price_cents)} · {ITEM_LABEL[it.status] || it.status}
+                  {(Number(it.quantity) || 1) > 1 ? `${it.quantity} × ${money(it.price_cents)} = ${money(lineCents(it))}` : money(it.price_cents)} · {ITEM_LABEL(lang)[it.status] || it.status}
                 </span>
               </span>
               <PriorityBadge p={it.priority} />
@@ -538,17 +544,17 @@ function PlanCard({ plan, focus, onReplace, onChanged }) {
             <div className="flex" style={{ gap: 8, flexWrap: 'wrap' }}>
               {plan.status === 'draft' && (
                 <>
-                  <button className="btn btn-outline btn-sm" disabled={!!busyAction} onClick={() => act(`/plans/${plan.id}/submit`, 'POST', undefined, 'Plan submitted for approval.')}>Submit for approval</button>
+                  <button className="btn btn-outline btn-sm" disabled={!!busyAction} onClick={() => act(`/plans/${plan.id}/submit`, 'POST', undefined, lang === 'ar' ? 'تم تقديم الخطة للاعتماد.' : 'Plan submitted for approval.')}>Submit for approval</button>
                   <button className="btn btn-primary btn-sm" disabled={!!busyAction} onClick={async () => {
                     const ok = await confirm({ title: lang === 'ar' ? 'اعتماد خطة العلاج' : 'Approve treatment plan', message: `Approve “${plan.title}” (estimate ${money(plan.estimated_total_cents)})? Approved plans can be scheduled and performed.`, confirmLabel: lang === 'ar' ? 'اعتماد الخطة' : 'Approve plan' });
-                    if (ok) act(`/plans/${plan.id}/approve`, 'POST', undefined, 'Plan approved.');
+                    if (ok) act(`/plans/${plan.id}/approve`, 'POST', undefined, lang === 'ar' ? 'تم اعتماد الخطة.' : 'Plan approved.');
                   }}>Approve</button>
                 </>
               )}
               {plan.status === 'pending_approval' && (
                 <button className="btn btn-primary btn-sm" disabled={!!busyAction} onClick={async () => {
                   const ok = await confirm({ title: lang === 'ar' ? 'اعتماد خطة العلاج' : 'Approve treatment plan', message: `Approve “${plan.title}” (estimate ${money(plan.estimated_total_cents)})? Approved plans can be scheduled and performed.`, confirmLabel: lang === 'ar' ? 'اعتماد الخطة' : 'Approve plan' });
-                  if (ok) act(`/plans/${plan.id}/approve`, 'POST', undefined, 'Plan approved.');
+                  if (ok) act(`/plans/${plan.id}/approve`, 'POST', undefined, lang === 'ar' ? 'تم اعتماد الخطة.' : 'Plan approved.');
                 }}>Approve plan</button>
               )}
               {editable && <button className="btn btn-outline btn-sm" onClick={() => setAddingItem(true)}><IconPlus size={13} /> Add procedure</button>}
@@ -557,7 +563,7 @@ function PlanCard({ plan, focus, onReplace, onChanged }) {
                 <IconPlus size={13} /> Split into new session
               </button>}
               {['approved', 'completed', 'cancelled'].includes(plan.status) && plan.status !== 'cancelled' && (
-                <button className="btn btn-outline btn-sm" disabled={!!busyAction} onClick={() => act(`/plans/${plan.id}/revision`, 'POST', undefined, 'Revision draft created.')}>Create revision</button>
+                <button className="btn btn-outline btn-sm" disabled={!!busyAction} onClick={() => act(`/plans/${plan.id}/revision`, 'POST', undefined, lang === 'ar' ? 'تم إنشاء مسودة مراجعة.' : 'Revision draft created.')}>Create revision</button>
               )}
               {!['completed', 'cancelled'].includes(plan.status) && (
                 <button className="btn btn-danger-outline btn-sm" disabled={busyAction === 'cancel'} onClick={cancelPlan}>Cancel plan</button>
@@ -578,7 +584,7 @@ function PlanCard({ plan, focus, onReplace, onChanged }) {
                     <span role="button" tabIndex={0} className="row-link" style={{ minWidth: 0 }}
                       onClick={() => setSessionDetail(s)}
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSessionDetail(s); } }}>
-                      <b>#{s.position} {s.title}</b> <StatusPill map={SESSION_LABEL} status={s.status} />
+                      <b>#{s.position} {s.title}</b> <StatusPill map={SESSION_LABEL(lang)} status={s.status} />
                       <div className="muted small">{s.item_count} procedure(s) · {s.completed_items} completed · {money(s.subtotal_cents)} · est. {s.estimated_min} min{s.appointment_id ? ` · appointment #${s.appointment_id} linked` : ''} · <u>details ▸</u></div>
                     </span>
                     {canClinical && (
@@ -725,7 +731,7 @@ function AddItemDialog({ plan, onClose, onDone }) {
         </Field>
         <Field label="Priority">
           <select className="select" aria-label="Item priority" value={f.priority} onChange={(e) => setF({ ...f, priority: e.target.value })}>
-            {Object.entries(ITEM_PRIORITY_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            {Object.entries(ITEM_PRIORITY_LABEL(lang)).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         </Field>
         <Field label="Session">
