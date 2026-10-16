@@ -68,6 +68,7 @@ export default function Layout() {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">{t('a11y.skipToContent')}</a>
       {open && <div className="sidebar-scrim" onClick={() => setOpen(false)} aria-hidden="true" />}
       <aside className={`sidebar${open ? ' open' : ''}`} id="app-sidebar" ref={sidebarRef}>
         <div className="brand">
@@ -110,7 +111,7 @@ export default function Layout() {
               <div className="nm" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.full_name}</div>
               <div className="rl">{t(`role.${user?.role}`)}</div>
             </div>
-            <button className="icon-btn" style={{ color: '#9db6ca' }} title={t('common.signOut')}
+            <button className="icon-btn" style={{ color: '#9db6ca' }} title={t('common.signOut')} aria-label={t('common.signOut')}
               onClick={async () => { await logout(); navigate('/login'); }}>
               <IconLogout />
             </button>
@@ -118,7 +119,7 @@ export default function Layout() {
         </div>
       </aside>
 
-      <div className="main">
+      <div className="main" id="main-content" tabIndex={-1}>
         <div className="topbar">
           <button className="icon-btn hamburger" ref={hamburgerRef} onClick={() => setOpen(true)}
             aria-label={t('nav.openMenu')} aria-expanded={open} aria-controls="app-sidebar">

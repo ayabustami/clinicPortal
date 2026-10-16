@@ -847,3 +847,12 @@ textarea:focus-visible, [tabindex]:focus-visible, summary:focus-visible {
 .step-na, .step-unknown { opacity: 0.62; }
 .step-unknown .visit-step-dot { background: #94a3b8; }
 @media (max-width: 720px) { .visit-grid { grid-template-columns: 1fr; } }
+
+/* ---- Accessibility: skip link ---- */
+.skip-link {
+  position: absolute; left: -9999px; top: 0; z-index: 10000;
+  padding: 8px 14px; background: var(--primary, #0e9384); color: #fff;
+  border-radius: 0 0 8px 0; font-weight: 600; font-size: 13px;
+  text-decoration: none;
+}
+.skip-link:focus { left: 0; outline: 2px solid #fff; outline-offset: 2px; }
