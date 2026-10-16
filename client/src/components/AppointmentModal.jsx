@@ -3,6 +3,7 @@ import { DateTime } from 'luxon';
 import { api } from '../api.js';
 import { useAuth, useClinicMeta } from '../auth.jsx';
 import { Modal, Field, useToast } from './ui.jsx';
+import { useI18n } from '../i18n.jsx';
 import PatientSelect from './PatientSelect.jsx';
 import { STATUS_META, money } from '../format.js';
 import { IconPlus, IconAlert, IconClock } from './icons.jsx';

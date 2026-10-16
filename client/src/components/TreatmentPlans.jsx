@@ -3,6 +3,7 @@ import { api } from '../api.js';
 import { cachedGet, prime, invalidateTimelines } from '../apiCache.js';
 import { useAuth, useClinicMeta } from '../auth.jsx';
 import { Modal, Field, Spinner, EmptyState, useToast, useConfirm } from './ui.jsx';
+import { useI18n } from '../i18n.jsx';
 import AppointmentModal from './AppointmentModal.jsx';
 import { money } from '../format.js';
 import { IconPlus } from './icons.jsx';
