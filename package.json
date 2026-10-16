@@ -2,7 +2,7 @@
   "name": "clinic-portal",
   "version": "1.0.0",
   "private": true,
-  "description": "Multi-tenant Clinic Management Portal — MVP",
+  "description": "Multi-tenant Clinic Management Portal \u2014 MVP",
   "scripts": {
     "setup": "npm --prefix server install && npm --prefix client install",
     "migrate": "npm --prefix server run migrate",
@@ -12,6 +12,10 @@
     "dev:client": "npm --prefix client run dev",
     "test": "npm --prefix server test",
     "build": "npm --prefix client run build",
-    "start": "npm --prefix server start"
+    "start": "npm --prefix server start",
+    "test:e2e": "npx playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1"
   }
 }

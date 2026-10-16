@@ -9,3 +9,8 @@ server/.env
 .env
 *.log
 .DS_Store
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
