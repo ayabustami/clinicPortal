@@ -5,7 +5,7 @@ import { useApi } from '../useApi.js';
 import { invalidate } from '../apiCache.js';
 import { useAuth } from '../auth.jsx';
 import { useI18n } from '../i18n.jsx';
-import { Spinner, EmptyState, StatusBadge, useToast, useConfirm } from '../components/ui.jsx';
+import { Spinner, EmptyState, StatusBadge, useToast, useConfirm, Breadcrumb } from '../components/ui.jsx';
 import { PatientFormModal } from './Patients.jsx';
 import { fmtDateShort, fmtTime, ageFromDob, money } from '../format.js';
 import { RecordDetail } from './Records.jsx';
@@ -246,6 +246,7 @@ export default function PatientProfile() {
 
   return (
     <div className="page">
+      <Breadcrumb items={[{ label: lang === 'ar' ? 'المرضى' : 'Patients', to: '/patients' }, { label: `${p.first_name} ${p.last_name}` }]} />
       <div className="page-head">
         <div>
           <h1>

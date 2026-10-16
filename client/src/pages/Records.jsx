@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, memo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useI18n } from '../i18n.jsx';
 import { api } from '../api.js';
@@ -485,6 +485,22 @@ export function RecordDetail({ id, onClose, onEdit, onChanged }) {
   );
 }
 
+const RecordRow = memo(function RecordRow({ r, canWrite, onOpen }) {
+  return (
+    <tr className="row-link" tabIndex={canWrite ? 0 : -1} role="button"
+      onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && canWrite) { e.preventDefault(); onOpen(r.id); } }}
+      onClick={() => canWrite && onOpen(r.id)}>
+      <td className="mono">{r.visit_date}</td>
+      <td><b>{r.patient_name}</b></td>
+      <td className="hide-sm">{r.doctor_name}</td>
+      <td>{r.diagnosis || <span className="muted">—</span>}</td>
+      <td><RecordStatusBadge status={r.status} /></td>
+      <td className="num">{canWrite && <button className="btn btn-outline btn-sm" onClick={(e) => { e.stopPropagation(); onOpen(r.id); }}>Open</button>}</td>
+    </tr>
+  );
+});
+
+
 export default function Records() {
   const { user } = useAuth();
   const { doctors } = useClinicMeta();
@@ -584,16 +600,7 @@ export default function Records() {
               <thead><tr><th>Visit</th><th>Patient</th><th className="hide-sm">Doctor</th><th>Diagnosis</th><th>Status</th><th></th></tr></thead>
               <tbody>
                 {records.map((r) => (
-                  <tr key={r.id} className="row-link" tabIndex={canWrite ? 0 : -1} role="button"
-                    onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && canWrite) { e.preventDefault(); setOpenId(r.id); } }}
-                    onClick={() => canWrite && setOpenId(r.id)}>
-                    <td className="mono">{r.visit_date}</td>
-                    <td><b>{r.patient_name}</b></td>
-                    <td className="hide-sm">{r.doctor_name}</td>
-                    <td>{r.diagnosis || <span className="muted">—</span>}</td>
-                    <td><RecordStatusBadge status={r.status} /></td>
-                    <td className="num">{canWrite && <button className="btn btn-outline btn-sm" onClick={(e) => { e.stopPropagation(); setOpenId(r.id); }}>Open</button>}</td>
-                  </tr>
+                  <RecordRow key={r.id} r={r} canWrite={canWrite} onOpen={setOpenId} />
                 ))}
               </tbody>
             </table>

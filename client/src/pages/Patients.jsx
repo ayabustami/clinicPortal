@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, memo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { cachedGet, invalidate } from '../apiCache.js';
@@ -73,6 +73,23 @@ export function PatientFormModal({ patient, onClose, onSaved }) {
   );
 }
 
+const PatientRow = memo(function PatientRow({ p, lang, navigate }) {
+  return (
+    <tr className="row-link" tabIndex={0} role="link"
+        aria-label={lang === 'ar' ? `فتح مريض ${p.first_name} ${p.last_name}` : `Open patient ${p.first_name} ${p.last_name}`}
+        onClick={() => navigate(`/patients/${p.id}`)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/patients/${p.id}`); } }}>
+      <td className="mono">{p.mrn}</td>
+      <td><b>{p.first_name} {p.last_name}</b></td>
+      <td>{p.phone || <span className="muted">—</span>}</td>
+      <td className="hide-sm">{p.dob || <span className="muted">—</span>}</td>
+      <td className="hide-sm" style={{ textTransform: 'capitalize' }}>{p.gender || '—'}</td>
+      <td className="num">{p.visits}</td>
+    </tr>
+  );
+});
+
+
 export default function Patients() {
   const { user } = useAuth();
   const { lang } = useI18n();
@@ -146,17 +163,7 @@ export default function Patients() {
               <thead><tr><th>{lang === 'ar' ? 'الرقم' : 'Number'}</th><th>{lang === 'ar' ? 'الاسم' : 'Name'}</th><th>{lang === 'ar' ? 'الهاتف' : 'Phone'}</th><th className="hide-sm">{lang === 'ar' ? 'تاريخ الميلاد' : 'DOB'}</th><th className="hide-sm">{lang === 'ar' ? 'الجنس' : 'Gender'}</th><th className="num">{lang === 'ar' ? 'الزيارات' : 'Visits'}</th></tr></thead>
               <tbody>
                 {items.map((p) => (
-                  <tr key={p.id} className="row-link" tabIndex={0} role="link"
-                      aria-label={lang === 'ar' ? `فتح مريض ${p.first_name} ${p.last_name}` : `Open patient ${p.first_name} ${p.last_name}`}
-                      onClick={() => navigate(`/patients/${p.id}`)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/patients/${p.id}`); } }}>
-                    <td className="mono">{p.mrn}</td>
-                    <td><b>{p.first_name} {p.last_name}</b></td>
-                    <td>{p.phone || <span className="muted">—</span>}</td>
-                    <td className="hide-sm">{p.dob || <span className="muted">—</span>}</td>
-                    <td className="hide-sm" style={{ textTransform: 'capitalize' }}>{p.gender || '—'}</td>
-                    <td className="num">{p.visits}</td>
-                  </tr>
+                  <PatientRow key={p.id} p={p} lang={lang} navigate={navigate} />
                 ))}
               </tbody>
             </table>

@@ -4,7 +4,7 @@ import { api } from '../api.js';
 import { invalidate, invalidateTimelines } from '../apiCache.js';
 import { useAuth, useClinicMeta } from '../auth.jsx';
 import { useI18n } from '../i18n.jsx';
-import { Spinner, Modal, Field, useToast } from '../components/ui.jsx';
+import { Spinner, Modal, Field, useToast, Breadcrumb } from '../components/ui.jsx';
 import { InvoiceStatusBadge } from './Invoices.jsx';
 import { money, fmtDate, fmtTime } from '../format.js';
 import { IconPrint, IconPlus } from '../components/icons.jsx';
@@ -85,6 +85,7 @@ export default function InvoiceDetail() {
 
   return (
     <div className="page">
+      <Breadcrumb items={[{ label: lang === 'ar' ? 'الفوترة' : 'Invoices', to: '/invoices' }, { label: inv.invoice_no }]} />
       <div className="page-head">
         <div>
           <h1>{lang === 'ar' ? 'فاتورة' : 'Invoice'} {inv.invoice_no} <InvoiceStatusBadge status={inv.status} /></h1>
