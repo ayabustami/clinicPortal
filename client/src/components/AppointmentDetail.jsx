@@ -20,7 +20,7 @@ export default function AppointmentDetail({ appointment: appt, onClose, onChange
   const toast = useToast();
   const confirm = useConfirm();
   const navigate = useNavigate();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [busy, setBusy] = useState(false);
   const { doctorProfile } = useClinicMeta();
 
