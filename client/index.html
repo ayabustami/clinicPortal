@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Denti Clinics — Management Suite</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <style>
+      /* Boot splash: shown until React mounts, then faded out by main.jsx.
+         Light + dark via prefers-color-scheme; static under reduced motion. */
+      #boot-splash {
+        position: fixed; inset: 0; z-index: 9999;
+        display: grid; place-items: center;
+        background: #f7f9fb; color: #0f172a;
+        font: 400 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        transition: opacity 0.28s ease;
+      }
+      #boot-splash.done { opacity: 0; pointer-events: none; }
+      #boot-splash .bs-inner { display: grid; justify-items: center; gap: 4px; }
+      #boot-splash .bs-tooth { width: 54px; height: 54px; color: #0e9384; }
+      #boot-splash .bs-tooth path {
+        fill: none; stroke: currentColor; stroke-width: 1.6;
+        stroke-linecap: round; stroke-linejoin: round;
+        stroke-dasharray: 100; stroke-dashoffset: 100;
+        animation: bs-draw 0.9s ease-out 0.05s forwards;
+      }
+      #boot-splash .bs-name {
+        margin-top: 10px; font-size: 17px; font-weight: 650; letter-spacing: 0.2px;
+        opacity: 0; animation: bs-fade 0.5s ease-out 0.4s forwards;
+      }
+      #boot-splash .bs-msg {
+        font-size: 12.5px; color: #64748b;
+        opacity: 0; animation: bs-fade 0.5s ease-out 0.55s forwards;
+      }
+      @keyframes bs-draw { to { stroke-dashoffset: 0; } }
+      @keyframes bs-fade { to { opacity: 1; } }
+      @media (prefers-color-scheme: dark) {
+        #boot-splash { background: #0d1520; color: #e6edf3; }
+        #boot-splash .bs-tooth { color: #4fd1c0; }
+        #boot-splash .bs-msg { color: #8fa3b8; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #boot-splash, #boot-splash .bs-tooth path, #boot-splash .bs-name, #boot-splash .bs-msg {
+          animation: none; transition: none;
+        }
+        #boot-splash .bs-tooth path { stroke-dashoffset: 0; }
+        #boot-splash .bs-name, #boot-splash .bs-msg { opacity: 1; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <div id="boot-splash" role="status" aria-label="Loading Denti Clinics">
+      <div class="bs-inner">
+        <svg class="bs-tooth" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path pathLength="100" d="M12 5.6C10.8 4.6 9.3 4 7.9 4 4.9 4 3 6.2 3 9c0 2 .8 3.5 1.6 5.1.8 1.7 1.2 3.4 1.4 5.2.1 1 .9 1.8 1.9 1.8 1.2 0 1.7-.9 1.9-2l.5-2.6c.2-1 .9-1.6 1.7-1.6s1.5.6 1.7 1.6l.5 2.6c.2 1.1.7 2 1.9 2 1 0 1.8-.8 1.9-1.8.2-1.8.6-3.5 1.4-5.2C20.2 12.5 21 11 21 9c0-2.8-1.9-5-4.9-5-1.4 0-2.9.6-4.1 1.6Z" />
+        </svg>
+        <div class="bs-name">Denti Clinics</div>
+        <div class="bs-msg">Preparing your workspace</div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "clinic-portal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Multi-tenant Clinic Management Portal — MVP",
+  "scripts": {
+    "setup": "npm --prefix server install && npm --prefix client install",
+    "migrate": "npm --prefix server run migrate",
+    "seed": "npm --prefix server run seed",
+    "seed:reset": "npm --prefix server run seed -- --reset",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "test": "npm --prefix server test",
+    "build": "npm --prefix client run build",
+    "start": "npm --prefix server start"
+  }
+}

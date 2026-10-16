@@ -1,0 +1,30 @@
+{
+  "name": "clinic-portal-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Clinic Management Portal - REST API",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "migrate": "node src/migrate.js",
+    "seed": "node src/seed.js",
+    "backup": "node scripts/backup.js",
+    "test": "node --test tests/",
+    "db:check": "node scripts/db-check.js",
+    "db:import": "node scripts/import-sqlite.js",
+    "db:import:dry": "node scripts/import-sqlite.js --dry-run",
+    "db:verify": "node scripts/verify-import.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^12.11.1",
+    "busboy": "^1.6.0",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.23.1"
+  }
+}
