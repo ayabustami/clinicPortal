@@ -22,6 +22,7 @@ const DURATIONS = [15, 20, 30, 45, 60, 75, 90, 120];
 export default function AppointmentModal({ mode, initial = {}, onClose, onSaved }) {
   const { user } = useAuth();
   const { clinic, doctors, services, branches } = useClinicMeta();
+  const { lang } = useI18n();
   const toast = useToast();
   const appt = initial.appointment || null;
   const tz = clinic?.timezone || null;
@@ -108,7 +109,7 @@ export default function AppointmentModal({ mode, initial = {}, onClose, onSaved 
   async function registerPatient(e) {
     e?.preventDefault?.();
     setNpError('');
-    if (!np.first_name.trim() || !np.last_name.trim()) { setNpError('First and last name are required.'); return; }
+    if (!np.first_name.trim() || !np.last_name.trim()) { setNpError(lang === 'ar' ? 'الاسم الأول والأخير مطلوبان.' : 'First and last name are required.'); return; }
     setNpBusy(true);
     try {
       const res = await api('/patients', {
@@ -214,10 +215,10 @@ export default function AppointmentModal({ mode, initial = {}, onClose, onSaved 
     e.preventDefault();
     setError('');
     const fe = {};
-    if (!patient) fe.patient = 'Select a patient (or register a new one).';
-    if (!doctorId) fe.doctor = 'Select a doctor.';
-    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) fe.date = 'Provide a valid date.';
-    if (!time || !/^\d{2}:\d{2}$/.test(time)) fe.time = 'Provide a valid start time.';
+    if (!patient) fe.patient = lang === 'ar' ? 'اختر مريضاً (أو سجّل جديداً).' : 'Select a patient (or register a new one).';
+    if (!doctorId) fe.doctor = lang === 'ar' ? 'اختر طبيباً.' : 'Select a doctor.';
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) fe.date = lang === 'ar' ? 'أدخل تاريخاً صالحاً.' : 'Provide a valid date.';
+    if (!time || !/^\d{2}:\d{2}$/.test(time)) fe.time = lang === 'ar' ? 'أدخل وقت بداية صالح.' : 'Provide a valid start time.';
     if (!Number.isFinite(Number(duration)) || Number(duration) < 5 || Number(duration) > 480) fe.duration = 'Duration must be 5–480 minutes.';
     setFieldErrors(fe);
     if (Object.keys(fe).length) return;
@@ -248,7 +249,7 @@ export default function AppointmentModal({ mode, initial = {}, onClose, onSaved 
         body.status = status; // server only allows scheduled/confirmed at creation
         res = await api('/appointments', { method: 'POST', body });
       }
-      toast.success(mode === 'edit' ? 'Appointment updated.' : `Appointment booked for ${date} at ${time}.`);
+      toast.success(mode === 'edit' ? (lang === 'ar' ? 'تم تحديث الموعد.' : 'Appointment updated.') : (lang === 'ar' ? `تم حجز الموعد لـ ${date} في ${time}.` : `Appointment booked for ${date} at ${time}.`));
       onSaved?.(res.appointment);
     } catch (err) {
       // never a false success: surface the server's exact message
@@ -273,7 +274,7 @@ export default function AppointmentModal({ mode, initial = {}, onClose, onSaved 
           reason: `Wanted ${date} ${time} — no available slot`,
         },
       });
-      toast.success('Patient added to the waiting list for an earlier slot.');
+      toast.success(lang === 'ar' ? 'تمت إضافة المريض إلى قائمة الانتظار لموعد أبكر.' : 'Patient added to the waiting list for an earlier slot.');
       setConflictInfo(null);
     } catch (err) {
       setError(err.message);
@@ -291,12 +292,12 @@ export default function AppointmentModal({ mode, initial = {}, onClose, onSaved 
   const canPickStatus = mode === 'create';
 
   return (
-    <Modal title={mode === 'edit' ? 'Edit appointment' : 'New appointment'} onClose={onClose} wide
+    <Modal title={mode === 'edit' ? (lang === 'ar' ? 'تعديل موعد' : 'Edit appointment') : (lang === 'ar' ? 'موعد جديد' : 'New appointment')} onClose={onClose} wide
       footer={
         <>
           <button className="btn btn-outline" onClick={onClose} disabled={busy}>Cancel</button>
           <button className="btn btn-primary" onClick={submit} disabled={busy}>
-            {busy ? 'Saving…' : mode === 'edit' ? 'Save changes' : 'Book appointment'}
+            {busy ? (lang === 'ar' ? 'جارٍ الحفظ…' : 'Saving…') : mode === 'edit' ? (lang === 'ar' ? 'حفظ التغييرات' : 'Save changes') : (lang === 'ar' ? 'حجز موعد' : 'Book appointment')}
           </button>
         </>
       }
@@ -307,7 +308,7 @@ export default function AppointmentModal({ mode, initial = {}, onClose, onSaved 
           {conflictInfo && patient && (
             <div className="mt-8">
               <button type="button" className="btn btn-outline btn-sm" disabled={wlBusy} onClick={addToWaitingList}>
-                {wlBusy ? 'Adding…' : 'Add patient to waiting list for an earlier slot'}
+                {wlBusy ? (lang === 'ar' ? 'جارٍ الإضافة…' : 'Adding…') : (lang === 'ar' ? 'إضافة مريض إلى قائمة الانتظار لموعد أبكر' : 'Add patient to waiting list for an earlier slot')}
               </button>
             </div>
           )}
@@ -350,7 +351,7 @@ export default function AppointmentModal({ mode, initial = {}, onClose, onSaved 
               <Field label="Date of birth"><input type="date" className="input" value={np.dob} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setNp({ ...np, dob: e.target.value })} /></Field>
             </div>
             <button type="button" className="btn btn-primary btn-sm" disabled={npBusy} onClick={registerPatient}>
-              {npBusy ? 'Registering…' : 'Register & select'}
+              {npBusy ? (lang === 'ar' ? 'جارٍ التسجيل…' : 'Registering…') : (lang === 'ar' ? 'تسجيل واختيار' : 'Register & select')}
             </button>
           </div>
         )}

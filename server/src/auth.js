@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const config = require('./config');
+const RL = require('./rateLimit');
 const { q1, exec } = require('./db');
 const { unauthorized, forbidden } = require('./util/errors');
 
@@ -56,12 +57,22 @@ function signToken(user) {
   );
 }
 
+function tokenTtlMs() {
+  const ttl = String(config.tokenTtl || '12h').trim();
+  const m = /^(\d+)\s*(s|m|h|d)$/i.exec(ttl);
+  if (!m) return 12 * 60 * 60 * 1000;
+  const n = parseInt(m[1], 10);
+  const unit = m[2].toLowerCase();
+  const mult = unit === 's' ? 1000 : unit === 'm' ? 60000 : unit === 'h' ? 3600000 : 86400000;
+  return n * mult;
+}
+
 function setAuthCookie(res, token) {
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: config.cookieSameSite,
     secure: config.cookieSecure,
-    maxAge: 12 * 60 * 60 * 1000,
+    maxAge: tokenTtlMs(),
     path: '/',
   });
 }
@@ -169,61 +180,6 @@ function publicUser(user) {
   };
 }
 
-/* ---------------- login rate limiting (in-memory, fixed window) ---------------- */
-
-const loginAttempts = new Map(); // key -> { count, resetAt }
-const LOGIN_MAX_FAILURES = 8;
-const LOGIN_WINDOW_MS = 10 * 60 * 1000;
-const IP_MAX_PER_WINDOW = 40;
-const ipAttempts = new Map();
-
-function clientIp(req) {
-  const xff = req.headers['x-forwarded-for'];
-  if (xff) return String(xff).split(',')[0].trim();
-  return req.ip || req.socket?.remoteAddress || 'unknown';
-}
-
-/** Returns an error message when the attempt should be blocked, else null. */
-function checkLoginRate(req, email) {
-  const now = Date.now();
-  const ipKey = clientIp(req);
-  const ip = ipAttempts.get(ipKey);
-  if (ip && ip.resetAt < now) ipAttempts.delete(ipKey);
-  if (ip && ip.count >= IP_MAX_PER_WINDOW) {
-    return 'Too many login attempts from this network. Please try again later.';
-  }
-  const key = `${ipKey}|${String(email || '').toLowerCase()}`;
-  const rec = loginAttempts.get(key);
-  if (rec && rec.resetAt < now) loginAttempts.delete(key);
-  if (rec && rec.count >= LOGIN_MAX_FAILURES) {
-    return 'Too many failed login attempts for this account. Please try again in 10 minutes.';
-  }
-  return null;
-}
-
-function recordLoginFailure(req, email) {
-  const now = Date.now();
-  const ipKey = clientIp(req);
-  const ip = ipAttempts.get(ipKey) || { count: 0, resetAt: now + LOGIN_WINDOW_MS };
-  ip.count += 1;
-  ipAttempts.set(ipKey, ip);
-  const key = `${ipKey}|${String(email || '').toLowerCase()}`;
-  const rec = loginAttempts.get(key) || { count: 0, resetAt: now + LOGIN_WINDOW_MS };
-  rec.count += 1;
-  loginAttempts.set(key, rec);
-}
-
-function recordLoginSuccess(req, email) {
-  const key = `${clientIp(req)}|${String(email || '').toLowerCase()}`;
-  loginAttempts.delete(key);
-}
-
-/** For tests and process reuse. */
-function resetRateLimits() {
-  loginAttempts.clear();
-  ipAttempts.clear();
-}
-
 /* ---------------- CSRF / origin defense for cookie-auth requests ---------------- */
 
 function allowedOrigins(req) {
@@ -267,6 +223,10 @@ module.exports = {
   hashPassword, verifyPassword, verifyPasswordSafe,
   signToken, setAuthCookie, clearAuthCookie, bumpTokenVersion,
   requireAuth, requireRole, requireClinic, publicUser,
-  checkLoginRate, recordLoginFailure, recordLoginSuccess, resetRateLimits,
-  originGuard, clientIp, randomId,
+  checkLoginRate: RL.checkLoginRate,
+  recordLoginFailure: RL.recordLoginFailure,
+  recordLoginSuccess: RL.recordLoginSuccess,
+  resetRateLimits: RL.resetRateLimits,
+  originGuard, allowedOrigins, randomId,
+  clientIp: RL.clientIp,
 };

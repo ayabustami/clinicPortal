@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { Spinner, EmptyState, Pagination } from '../components/ui.jsx';
 import { fmtDateShort, fmtTime } from '../format.js';
+import { useI18n } from '../i18n.jsx';
 
 const ENTITIES = ['', 'user', 'patient', 'appointment', 'medical_record', 'invoice', 'doctor', 'service', 'branch', 'clinic', 'attachment'];
 const ACTIONS = ['', 'auth', 'appointment', 'patient', 'record', 'invoice', 'payment', 'user', 'doctor', 'service', 'clinic', 'unavailability', 'attachment'];
@@ -16,6 +17,7 @@ export default function Audit() {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({ action: '', entity: '', from: '', to: '' });
   const [expanded, setExpanded] = useState(null);
+  const { lang } = useI18n();
 
   const load = useCallback(async (p = 1) => {
     setError('');
@@ -38,38 +40,38 @@ export default function Audit() {
     <div className="page">
       <div className="page-head">
         <div>
-          <h1>Audit trail</h1>
-          <div className="desc">Append-only log of clinical, financial and administrative actions. Entries cannot be edited or deleted.</div>
+          <h1>{lang === 'ar' ? 'سجل التدقيق' : 'Audit trail'}</h1>
+          <div className="desc">{lang === 'ar' ? 'سجل غير قابل للتعديل/الحذف للإجراءات السريرية والمالية والإدارية.' : 'Append-only log of clinical, financial and administrative actions. Entries cannot be edited or deleted.'}</div>
         </div>
       </div>
 
       <div className="card mb-12">
         <div className="flex" style={{ padding: '14px 16px', gap: 10, flexWrap: 'wrap' }}>
-          <select className="select" style={{ width: 'auto' }} value={filters.action} onChange={setF('action')} aria-label="Filter by action">
-            {ACTIONS.map((a) => <option key={a} value={a}>{a ? `${a}.*` : 'All actions'}</option>)}
+          <select className="select" style={{ width: 'auto' }} value={filters.action} onChange={setF('action')} aria-label={lang === 'ar' ? 'تصفية حسب الإجراء' : 'Filter by action'}>
+            {ACTIONS.map((a) => <option key={a} value={a}>{a ? `${a}.*` : (lang === 'ar' ? 'كل الإجراءات' : 'All actions')}</option>)}
           </select>
-          <select className="select" style={{ width: 'auto' }} value={filters.entity} onChange={setF('entity')} aria-label="Filter by entity">
-            {ENTITIES.map((e) => <option key={e} value={e}>{e || 'All entities'}</option>)}
+          <select className="select" style={{ width: 'auto' }} value={filters.entity} onChange={setF('entity')} aria-label={lang === 'ar' ? 'تصفية حسب الكيان' : 'Filter by entity'}>
+            {ENTITIES.map((e) => <option key={e} value={e}>{e || (lang === 'ar' ? 'كل الكيانات' : 'All entities')}</option>)}
           </select>
-          <label className="flex small muted" style={{ gap: 6 }}>From
+          <label className="flex small muted" style={{ gap: 6 }}>{lang === 'ar' ? 'من' : 'From'}
             <input type="date" className="input" style={{ width: 'auto' }} value={filters.from} onChange={setF('from')} />
           </label>
-          <label className="flex small muted" style={{ gap: 6 }}>To
+          <label className="flex small muted" style={{ gap: 6 }}>{lang === 'ar' ? 'إلى' : 'To'}
             <input type="date" className="input" style={{ width: 'auto' }} value={filters.to} onChange={setF('to')} />
           </label>
-          <button className="btn btn-primary btn-sm" onClick={() => load(1)}>Apply</button>
+          <button className="btn btn-primary btn-sm" onClick={() => load(1)}>{lang === 'ar' ? 'تطبيق' : 'Apply'}</button>
         </div>
       </div>
 
       <div className="card">
         {error && <div className="form-error" style={{ margin: 14 }}>{error}</div>}
-        {!error && (!data ? <Spinner label="Loading audit trail…" /> : data.items.length === 0 ? (
-          <EmptyState icon="🛡️" title="No matching entries" />
+        {!error && (!data ? <Spinner label={lang === 'ar' ? 'جارٍ تحميل سجل التدقيق…' : 'Loading audit trail…'} /> : data.items.length === 0 ? (
+          <EmptyState icon="🛡️" title={lang === 'ar' ? 'لا توجد إدخالات مطابقة' : 'No matching entries'} />
         ) : (
           <>
             <div className="table-wrap">
               <table className="tbl">
-                <thead><tr><th>When</th><th className="hide-sm">Who</th><th>Action</th><th className="hide-sm">Entity</th><th>Details</th></tr></thead>
+                <thead><tr><th>{lang === 'ar' ? 'متى' : 'When'}</th><th className="hide-sm">{lang === 'ar' ? 'من' : 'Who'}</th><th>{lang === 'ar' ? 'الإجراء' : 'Action'}</th><th className="hide-sm">{lang === 'ar' ? 'الكيان' : 'Entity'}</th><th>{lang === 'ar' ? 'التفاصيل' : 'Details'}</th></tr></thead>
                 <tbody>
                   {data.items.map((it) => (
                     <React.Fragment key={it.id}>
@@ -77,10 +79,10 @@ export default function Audit() {
                         onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && it.details) { e.preventDefault(); setExpanded(expanded === it.id ? null : it.id); } }}
                         onClick={() => it.details && setExpanded(expanded === it.id ? null : it.id)}>
                         <td className="mono small">{fmtDateShort(it.created_at)} {fmtTime(it.created_at)}</td>
-                        <td className="hide-sm">{it.actor_name || 'System'}<div className="muted small">{it.actor_email}</div></td>
+                        <td className="hide-sm">{it.actor_name || (lang === 'ar' ? 'النظام' : 'System')}<div className="muted small">{it.actor_email}</div></td>
                         <td><code className="mono small">{it.action}</code></td>
                         <td className="hide-sm">{it.entity ? <span className="muted small">{it.entity} #{it.entity_id ?? ''}</span> : '—'}</td>
-                        <td className="muted small">{it.details ? (expanded === it.id ? '▾' : '▸ view') : '—'}</td>
+                        <td className="muted small">{it.details ? (expanded === it.id ? '▾' : (lang === 'ar' ? '▸ عرض' : '▸ view')) : '—'}</td>
                       </tr>
                       {expanded === it.id && it.details && (
                         <tr>

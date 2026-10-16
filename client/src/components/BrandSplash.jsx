@@ -1,4 +1,5 @@
 import React from 'react';
+import { useI18n } from '../i18n.jsx';
 
 /**
  * In-app brand splash: the same tooth mark, wordmark and message as the static
@@ -7,7 +8,9 @@ import React from 'react';
  * stroke draw + fade), static under prefers-reduced-motion, light/dark via
  * prefers-color-scheme. No timers, no artificial delay.
  */
-export default function BrandSplash({ message = 'Preparing your workspace' }) {
+export default function BrandSplash({ message }) {
+  const { lang } = useI18n();
+  const msg = message || (lang === 'ar' ? 'جارٍ تحضير مساحة عملك' : 'Preparing your workspace');
   return (
     <div className="splash" role="status" aria-label="Loading Denti Clinics">
       <div className="splash-inner">
@@ -18,7 +21,7 @@ export default function BrandSplash({ message = 'Preparing your workspace' }) {
           />
         </svg>
         <div className="splash-name">Denti Clinics</div>
-        <div className="splash-msg">{message}</div>
+        <div className="splash-msg">{msg}</div>
       </div>
     </div>
   );

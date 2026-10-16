@@ -166,7 +166,7 @@ export default function Appointments() {
   async function wlResolve(w, status, appointmentId) {
     try {
       await api(`/waiting/${w.id}/resolve`, { method: 'POST', body: { status, ...(appointmentId ? { appointment_id: appointmentId } : {}) } });
-      toast.success(status === 'booked' ? 'Waiting list entry linked to the new booking.' : 'Waiting list entry removed.');
+      toast.success(status === 'booked' ? (lang === 'ar' ? 'تم ربط إدخال قائمة الانتظار بالحجز الجديد.' : 'Waiting list entry linked to the new booking.') : (lang === 'ar' ? 'تم إزالة إدخال قائمة الانتظار.' : 'Waiting list entry removed.'));
     } catch (e) { toast.error(e.message); }
     loadWaiting();
   }
@@ -369,7 +369,7 @@ export default function Appointments() {
     const a = info.event.extendedProps;
     if (a.isLeave) {
       info.el.classList.add('evt-leave');
-      info.el.setAttribute('title', `${a.doctor_name || 'Doctor'} unavailable${a.reason ? ` — ${a.reason}` : ''}`);
+      info.el.setAttribute('title', `${a.doctor_name || (lang === 'ar' ? 'طبيب' : 'Doctor')} ${lang === 'ar' ? 'غير متاح' : 'unavailable'}${a.reason ? ` — ${a.reason}` : ''}`);
       return;
     }
     const m = STATUS_META[a.status] || STATUS_META.scheduled;
@@ -423,12 +423,12 @@ export default function Appointments() {
     const proceed = await confirm({
       title: label,
       message: `Move ${appt.patient_name}'s appointment to ${newStart.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })} at ${newStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })} (${newDur} min)?`,
-      confirmLabel: 'Apply change',
+      confirmLabel: lang === 'ar' ? 'تطبيق التغيير' : 'Apply change',
     });
     if (!proceed) { info.revert(); return; }
     try {
       await api(`/appointments/${appt.id}`, { method: 'PUT', body: { start_at: newStart.toISOString(), duration_min: newDur } });
-      toast.success('Appointment rescheduled.');
+      toast.success(lang === 'ar' ? 'تم إعادة جدولة الموعد.' : 'Appointment rescheduled.');
       setDetailAppt(null);
       refreshAll();
     } catch (err) {
@@ -497,13 +497,13 @@ export default function Appointments() {
       acts.push(<button key="vw" className="btn btn-outline btn-sm" title={t('visit.openWorkspace')} aria-label={t('visit.openWorkspace')} onClick={(e) => { e.stopPropagation(); navigate(`/visits/${a.id}`); }}><IconSteth size={13} /></button>);
     }
     if (canManage && isOwn && ['scheduled', 'confirmed'].includes(a.status)) {
-      acts.push(<button key="ci" className="btn btn-outline btn-sm" onClick={(e) => { e.stopPropagation(); patchStatus(a, 'checked_in', 'Check in'); }}>Check in</button>);
+      acts.push(<button key="ci" className="btn btn-outline btn-sm" onClick={(e) => { e.stopPropagation(); patchStatus(a, 'checked_in', lang === 'ar' ? 'تسجيل وصول' : 'Check in'); }}>{lang === 'ar' ? 'تسجيل وصول' : 'Check in'}</button>);
     }
     if (canClinical && isOwn && a.status === 'checked_in') {
-      acts.push(<button key="sv" className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); patchStatus(a, 'in_progress', 'Start visit'); }}>Start visit</button>);
+      acts.push(<button key="sv" className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); patchStatus(a, 'in_progress', lang === 'ar' ? 'بدء الزيارة' : 'Start visit'); }}>{lang === 'ar' ? 'بدء الزيارة' : 'Start visit'}</button>);
     }
     if (canClinical && isOwn && a.status === 'in_progress') {
-      acts.push(<button key="cv" className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); patchStatus(a, 'completed', 'Complete visit'); }}><IconCheck size={13} /> Complete</button>);
+      acts.push(<button key="cv" className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); patchStatus(a, 'completed', lang === 'ar' ? 'إكمال الزيارة' : 'Complete visit'); }}><IconCheck size={13} /> {lang === 'ar' ? 'إكمال' : 'Complete'}</button>);
     }
     // No-show: only once the slot time has actually passed (server enforces too),
     // never for upcoming appointments, and only for staff who may manage it.
@@ -511,7 +511,7 @@ export default function Appointments() {
       acts.push(<button key="ns" className="btn btn-danger-outline btn-sm" title={t('appt.noShow')} onClick={(e) => { e.stopPropagation(); patchStatus(a, 'no_show', t('appt.noShow')); }}><IconAlert size={13} /></button>);
     }
     if (canManage && isOwn && ['scheduled', 'confirmed'].includes(a.status)) {
-      acts.push(<button key="x" className="btn btn-danger-outline btn-sm" title="Cancel appointment" onClick={(e) => { e.stopPropagation(); patchStatus(a, 'cancelled', 'Cancel'); }}><IconX size={13} /></button>);
+      acts.push(<button key="x" className="btn btn-danger-outline btn-sm" title={lang === 'ar' ? 'إلغاء الموعد' : 'Cancel appointment'} onClick={(e) => { e.stopPropagation(); patchStatus(a, 'cancelled', lang === 'ar' ? 'إلغاء' : 'Cancel'); }}><IconX size={13} /></button>);
     }
     if (canManage && isOwn && a.status === 'cancelled') {
       acts.push(<button key="r" className="btn btn-outline btn-sm" title={t('appt.restore')} onClick={(e) => { e.stopPropagation(); patchStatus(a, 'scheduled', t('appt.restore')); }}><IconClock size={13} /></button>);
@@ -745,8 +745,8 @@ export default function Appointments() {
               selectMirror
               select={handleSelect}
               eventClick={handleEventClick}
-              eventDrop={canManage ? (info) => applyMove(info, 'Reschedule appointment') : undefined}
-              eventResize={canManage ? (info) => applyMove(info, 'Change appointment duration') : undefined}
+              eventDrop={canManage ? (info) => applyMove(info, lang === 'ar' ? 'إعادة جدولة الموعد' : 'Reschedule appointment') : undefined}
+              eventResize={canManage ? (info) => applyMove(info, lang === 'ar' ? 'تغيير مدة الموعد' : 'Change appointment duration') : undefined}
               eventSources={[fetchEvents, fetchUnavailability]}
               eventContent={eventContent}
               eventDidMount={eventDidMount}

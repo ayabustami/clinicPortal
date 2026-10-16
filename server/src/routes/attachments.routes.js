@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const busboy = require('busboy');
 const router = require('express').Router();
 const config = require('../config');
+const storage = require('../storage');
 const db = require('../db');
 const { requireAuth, requireClinic, requireRole, PERMS, randomId } = require('../auth');
 const { asyncH, badRequest, notFound, forbidden } = require('../util/errors');
@@ -18,14 +19,6 @@ const ALLOWED = {
   'image/png': { ext: 'png', magic: (b) => b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 },
   'image/webp': { ext: 'webp', magic: (b) => b.length >= 12 && b.toString('latin1', 0, 4) === 'RIFF' && b.toString('latin1', 8, 12) === 'WEBP' },
 };
-
-function uploadDir(clinicId) {
-  // Generated names only; user-supplied filenames never touch the filesystem path.
-  // Files stay on local disk under data/uploads (the DB stores metadata only).
-  const base = path.join(path.dirname(path.resolve(config.sqlitePath)), 'uploads', `clinic_${Number(clinicId)}`);
-  fs.mkdirSync(base, { recursive: true });
-  return base;
-}
 
 function parseMultipart(req) {
   return new Promise((resolve, reject) => {
@@ -84,8 +77,7 @@ router.post('/', requireAuth, requireClinic, requireRole(...PERMS.clinical), asy
 
   const sha256 = crypto.createHash('sha256').update(buf).digest('hex');
   const stored_name = `${randomId()}.${rule.ext}`; // generated id — never user input
-  const dir = uploadDir(req.clinic.id);
-  fs.writeFileSync(path.join(dir, stored_name), buf);
+  await storage.save(req.clinic.id, stored_name, buf);
 
   const created = await db.q1(`
     INSERT INTO attachments (clinic_id, entity_type, entity_id, original_name, stored_name, mime_type, size_bytes, sha256, uploaded_by)
@@ -114,15 +106,16 @@ router.get('/:id/download', requireAuth, requireClinic, requireRole(...PERMS.cli
   const id = V.int(req.params.id, 'id', { required: true });
   const row = await getOwnAttachment(req.clinic.id, id);
   await assertEntityAccess(req, row.entity_type, row.entity_id);
-  const file = path.join(uploadDir(req.clinic.id), row.stored_name);
-  if (!fs.existsSync(file)) throw notFound('Attachment file is missing from storage');
+  const present = await storage.exists(req.clinic.id, row.stored_name);
+  if (!present) throw notFound('Attachment file is missing from storage');
   await audit(db, { clinicId: req.clinic.id, userId: req.user.id, action: 'attachment.read', entity: 'attachment', entityId: id,
     details: { record_id: row.entity_id } });
   // RFC 5987 filename encoding (safe for Arabic names); inline=false forces download.
   res.setHeader('Content-Type', row.mime_type);
   res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(row.original_name)}`);
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  fs.createReadStream(file).pipe(res);
+  const stream = await storage.readStream(req.clinic.id, row.stored_name);
+  stream.pipe(res);
 }));
 
 // DELETE /api/attachments/:id — soft delete (history preserved); uploader or owner
