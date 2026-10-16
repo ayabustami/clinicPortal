@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { IconX, IconCheck, IconAlert, IconInfo } from './icons.jsx';
 import { STATUS_META } from '../format.js';
 import { useI18n } from '../i18n.jsx';
@@ -182,6 +183,23 @@ export function Field({ label, hint, children, error }) {
       {error ? <span className="small" style={{ color: 'var(--danger)' }}>{error}</span>
         : hint ? <span className="field-hint">{hint}</span> : null}
     </label>
+  );
+}
+
+/* ---------------- Breadcrumb ---------------- */
+export function Breadcrumb({ items }) {
+  if (!items || items.length === 0) return null;
+  return (
+    <nav className="breadcrumb" aria-label="Breadcrumb">
+      {items.map((it, i) => (
+        <span key={i} className="bc-item">
+          {i > 0 && <span className="bc-sep" aria-hidden="true">/</span>}
+          {it.to && i < items.length - 1
+            ? <Link to={it.to} className="bc-link">{it.label}</Link>
+            : <span className="bc-current" aria-current="page">{it.label}</span>}
+        </span>
+      ))}
+    </nav>
   );
 }
 

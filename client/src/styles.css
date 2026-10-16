@@ -856,3 +856,10 @@ textarea:focus-visible, [tabindex]:focus-visible, summary:focus-visible {
   text-decoration: none;
 }
 .skip-link:focus { left: 0; outline: 2px solid #fff; outline-offset: 2px; }
+
+/* ---- Breadcrumb ---- */
+.breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-3); margin-bottom: 12px; flex-wrap: wrap; }
+.breadcrumb .bc-sep { opacity: 0.5; margin-inline: 2px; }
+.breadcrumb .bc-link { color: var(--accent); text-decoration: none; }
+.breadcrumb .bc-link:hover { text-decoration: underline; }
+.breadcrumb .bc-current { color: var(--ink); font-weight: 600; }
