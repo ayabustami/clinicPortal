@@ -7,11 +7,21 @@ const helmet = require('helmet');
 const config = require('./config');
 const { ApiError } = require('./util/errors');
 const { originGuard } = require('./auth');
+const cors = require('cors');
 
 function createApp() {
   const app = express();
   app.disable('x-powered-by');
   if (config.env === 'production') app.set('trust proxy', 1);
+  app.use(cors({
+  origin: String(config.clientOrigin)
+    .split(',')
+    .map(origin => origin.trim().replace(/\/$/, ''))
+    .filter(Boolean),
+  credentials: true,
+  methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
   // Security headers. CSP is disabled at the API level because the SPA is
   // served separately in development; when serving the built SPA (production

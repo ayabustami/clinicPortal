@@ -1,7 +1,6 @@
 
 /** Minimal fetch wrapper for the Clinic Portal API. */
-const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
-
+export const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
 export async function api(path, { method = 'GET', body, signal } = {}) {
   const res = await fetch(`${API_BASE}/api${path}`, {
     method,

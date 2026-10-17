@@ -8,6 +8,8 @@ import { Spinner, EmptyState, Modal, Field, useToast, useConfirm } from '../comp
 import { fmtDateShort } from '../format.js';
 import { IconPlus, IconPill, IconCheck, IconEdit, IconPaperclip } from '../components/icons.jsx';
 import AppointmentModal from '../components/AppointmentModal.jsx';
+import { API_BASE } from '../api';
+
 
 const EMPTY_RX = { medication: '', dosage: '', frequency: '', duration: '', notes: '' };
 
@@ -234,22 +236,40 @@ function RecordAttachments({ recordId, canEdit, onChanged }) {
   }
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [recordId]);
 
+
   async function upload(ev) {
     const file = ev.target.files?.[0];
     if (!file) return;
+
     setBusy(true);
     const fd = new FormData();
     fd.append('entity_type', 'medical_record');
     fd.append('entity_id', String(recordId));
     fd.append('file', file);
+
     try {
-      const res = await fetch('/api/attachments', { method: 'POST', credentials: 'same-origin', body: fd });
+      const res = await fetch(`${API_BASE}/api/attachments`, {
+        method: 'POST',
+        credentials: 'include',
+        body: fd,
+      });
+
       const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error?.message || `Upload failed (${res.status})`);
+      if (!res.ok) {
+        throw new Error(data?.error?.message || `Upload failed (${res.status})`);
+      }
+
       toast.success('Attachment uploaded.');
-      load(); onChanged?.();
-    } catch (e) { toast.error(e.message); } finally { setBusy(false); if (fileRef.current) fileRef.current.value = ''; }
+      await load();
+      onChanged?.();
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
   }
+
 
   async function remove(a) {
     try {
@@ -280,8 +300,13 @@ function RecordAttachments({ recordId, canEdit, onChanged }) {
             📎 <b>{a.original_name}</b> <span className="muted">· {(a.size_bytes / 1024).toFixed(0)} KB · {fmtDateShort(a.created_at)}</span>
           </span>
           <span className="flex" style={{ gap: 6 }}>
-            <a className="btn btn-outline btn-sm" href={`/api/attachments/${a.id}/download`}>Download</a>
-            {canEdit && <button className="btn btn-danger-outline btn-sm" onClick={() => remove(a)}>Remove</button>}
+                <a
+                  className="btn btn-outline btn-sm"
+                  href={`${API_BASE}/api/attachments/${a.id}/download`}
+                >
+                  Download
+                </a>
+                        {canEdit && <button className="btn btn-danger-outline btn-sm" onClick={() => remove(a)}>Remove</button>}
           </span>
         </div>
       ))}

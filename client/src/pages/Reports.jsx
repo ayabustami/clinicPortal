@@ -49,8 +49,7 @@ export default function Reports() {
   const goTab = (t) => { setNpPage(1); setTab(t); };
   const setFromP = (v) => { setNpPage(1); setFrom(v); };
   const setToP = (v) => { setNpPage(1); setTo(v); };
-
-  const csvUrl = `/api/reports/${tab}?from=${from}&to=${to}&format=csv`;
+  const csvUrl = `${API_BASE}/api/reports/${tab}?from=${from}&to=${to}&format=csv`;
 
   return (
     <div className="page">
