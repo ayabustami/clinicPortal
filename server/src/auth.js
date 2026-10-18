@@ -85,11 +85,17 @@ async function bumpTokenVersion(t, userId) {
 async function requireAuth(req, res, next) {
   try {
     const token = req.cookies ? req.cookies[COOKIE_NAME] : null;
-    if (!token) return next(unauthorized());
+    // res.locals.authReason is a fixed diagnostic code for the request log
+    // (no token, cookie or user data). It never changes the response body.
+    if (!token) {
+      res.locals.authReason = 'no_session_cookie';
+      return next(unauthorized());
+    }
     let payload;
     try {
       payload = jwt.verify(token, config.jwtSecret);
-    } catch {
+    } catch (err) {
+      res.locals.authReason = err && err.name === 'TokenExpiredError' ? 'token_expired' : 'token_invalid';
       return next(unauthorized('Session expired, please sign in again'));
     }
     // Single round trip: user + clinic in one join. This runs on EVERY API
@@ -113,9 +119,13 @@ async function requireAuth(req, res, next) {
       FROM users u
       LEFT JOIN clinics c ON c.id = u.clinic_id
       WHERE u.id = ?`, [payload.sub]);
-    if (!row || !row.is_active) return next(unauthorized('Your account is disabled'));
+    if (!row || !row.is_active) {
+      res.locals.authReason = 'account_disabled';
+      return next(unauthorized('Your account is disabled'));
+    }
     // Session revocation: token must carry the current token_version.
     if (payload.tv !== (row.token_version || 1)) {
+      res.locals.authReason = 'session_revoked';
       return next(unauthorized('This session has been revoked, please sign in again'));
     }
     const user = {};

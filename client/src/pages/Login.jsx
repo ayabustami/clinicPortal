@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import { useI18n } from '../i18n.jsx';
 import { Field } from '../components/ui.jsx';
+import { resolveCredentials } from '../loginCredentials.js';
 import { IconTooth, IconCalendar, IconUsers, IconInvoice, IconGlobe } from '../components/icons.jsx';
 
 const DEMO_ACCOUNTS = [
@@ -32,13 +33,24 @@ export default function Login() {
   async function submit(e) {
     e.preventDefault();
     setError('');
+    // Read the live form values first: autofill can fill the inputs without
+    // updating React state (see loginCredentials.js).
+    const creds = resolveCredentials({ formData: new FormData(e.currentTarget), email, password });
+    // Keep the controlled inputs in sync with what is actually submitted, so a
+    // re-render after an error does not blank autofilled fields.
+    setEmail(creds.email);
+    setPassword(creds.password);
+    if (creds.missing.length) {
+      setError(t('login.missingFields'));
+      return;
+    }
     setBusy(true);
     try {
-      const u = await login(email.trim(), password);
+      const u = await login(creds.email, creds.password);
       const dest = safeNext || (u.role === 'platform_admin' ? '/admin/clinics' : u.role === 'doctor' ? '/my-day' : '/');
       navigate(dest, { replace: true });
     } catch (err) {
-      setError(err.message || 'Unable to sign in');
+      setError(err.code === 'session_not_established' ? t('login.sessionBlocked') : (err.message || t('login.failed')));
     } finally {
       setBusy(false);
     }
@@ -78,11 +90,13 @@ export default function Login() {
           {error && <div className="form-error" role="alert">{error}</div>}
           <form onSubmit={submit}>
             <Field label={t('login.email')}>
-              <input className="input" type="email" autoComplete="username" value={email}
+              <input className="input" type="email" name="email" autoComplete="username" value={email}
+                inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false}
                 onChange={(e) => setEmail(e.target.value)} placeholder="you@clinic.demo" required dir="ltr" />
             </Field>
             <Field label={t('login.password')}>
-              <input className="input" type="password" autoComplete="current-password" value={password}
+              <input className="input" type="password" name="password" autoComplete="current-password" value={password}
+                autoCapitalize="none" autoCorrect="off" spellCheck={false}
                 onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required dir="ltr" />
             </Field>
             <button className="btn btn-primary btn-lg btn-block" disabled={busy}>

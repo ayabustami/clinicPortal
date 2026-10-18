@@ -40,7 +40,9 @@ function createApp() {
     const start = Date.now();
     res.on('finish', () => {
       if (res.statusCode >= 400) {
-        console.log(`${req.method} ${req.originalUrl} -> ${res.statusCode} (${Date.now() - start}ms)`);
+        // authReason is a fixed code set by the auth middleware (never a token or cookie value).
+        const reason = res.locals.authReason ? ` reason=${res.locals.authReason}` : '';
+        console.log(`${req.method} ${req.originalUrl} -> ${res.statusCode} (${Date.now() - start}ms)${reason}`);
       }
     });
     next();
