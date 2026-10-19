@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api.js';
-import { useClinicMeta } from '../auth.jsx';
+import { useAuth, useClinicMeta } from '../auth.jsx';
 import { Spinner, Field, useToast, useConfirm } from '../components/ui.jsx';
 import { IconPlus } from '../components/icons.jsx';
+import ChangePasswordCard from '../components/ChangePasswordCard.jsx';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -19,6 +20,7 @@ const CURRENCY_NAMES = {
 
 export default function Settings() {
   const { clinic, allBranches: branches, refreshMeta } = useClinicMeta();
+  const { user } = useAuth();
   const toast = useToast();
   const confirm = useConfirm();
   const [settings, setSettings] = useState(null);
@@ -169,6 +171,10 @@ export default function Settings() {
             );
           })}
         </div>
+      </div>
+
+      <div style={{ marginTop: 14 }}>
+        <ChangePasswordCard userEmail={user?.email} />
       </div>
     </div>
   );

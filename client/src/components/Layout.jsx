@@ -5,7 +5,7 @@ import { useI18n } from '../i18n.jsx';
 import {
   IconDashboard, IconCalendar, IconUsers, IconSteth, IconFileText, IconInvoice,
   IconChart, IconSettings, IconBuilding, IconMenu, IconLogout, IconX, IconTooth, IconPlus, IconQueue,
-  IconGrid, IconShield, IconClock, IconGlobe,
+  IconGrid, IconShield, IconClock, IconGlobe, IconUser,
 } from './icons.jsx';
 
 const NAV = [
@@ -22,6 +22,8 @@ const NAV = [
   { to: '/audit', key: 'nav.audit', icon: IconShield, roles: ['owner'], section: 'nav.manage' },
   { to: '/settings', key: 'nav.settings', icon: IconSettings, roles: ['owner'], section: 'nav.manage' },
   { to: '/admin/clinics', key: 'nav.clinics', icon: IconBuilding, roles: ['platform_admin'], section: 'nav.platform' },
+  { to: '/account', key: 'nav.myAccount', icon: IconUser,
+    roles: ['owner', 'receptionist', 'doctor', 'accountant', 'platform_admin'], section: 'nav.account' },
 ];
 
 function initials(name = '') {
@@ -110,6 +112,9 @@ export default function Layout() {
               <div className="nm" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.full_name}</div>
               <div className="rl">{t(`role.${user?.role}`)}</div>
             </div>
+            <NavLink to="/account" className="icon-btn" style={{ color: '#9db6ca' }} title={t('nav.myAccount')}>
+              <IconUser />
+            </NavLink>
             <button className="icon-btn" style={{ color: '#9db6ca' }} title={t('common.signOut')}
               onClick={async () => { await logout(); navigate('/login'); }}>
               <IconLogout />

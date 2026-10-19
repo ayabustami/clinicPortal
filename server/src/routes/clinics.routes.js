@@ -155,7 +155,22 @@ router.post('/:id/owner', requireAuth, asyncH(async (req, res) => {
     RETURNING *
   `, [id, email, require('../auth').hashPassword(password), full_name, phone]);
   await audit(db, { clinicId: id, userId: req.user.id, action: 'clinic.owner.provision', entity: 'user', entityId: created.id, details: { email } });
-  res.status(201).json({ user: require('../auth').publicUser(created) });
+
+  // Account-setup invitation email (same flow as staff creation).
+  let invite = { sent: false };
+  try {
+    const { issueCode, exposeDevCode } = require('../util/codes');
+    const { sendVerificationEmail } = require('../services/email');
+    const { code } = await issueCode(db, { userId: created.id, email, purpose: 'account_setup' });
+    invite.sent = await sendVerificationEmail({
+      to: email, code, purpose: 'account_setup', name: full_name, clinicName: clinic.name,
+    });
+    if (exposeDevCode()) invite.dev_code = code;
+  } catch (err) {
+    console.error('[clinics] account-setup invite failed:', err.message);
+  }
+
+  res.status(201).json({ user: require('../auth').publicUser(created), invite });
 }));
 
 router.put('/:id', requireAuth, asyncH(async (req, res) => {
