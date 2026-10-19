@@ -8,6 +8,19 @@ const { audit } = require('../util/audit');
 const { issueCode, verifyCode, exposeDevCode, maskEmail } = require('../util/codes');
 const { sendVerificationEmail } = require('../services/email');
 
+/**
+ * Diagnostic line for a rejected login payload. Logs only the failing field,
+ * the validation code, the request Content-Type and the NAMES of the body keys
+ * — never the email or password values.
+ */
+function logValidationReject(req, err) {
+  if (!err || !err.fields) return;
+  const fields = Object.entries(err.fields).map(([f, code]) => `${f}=${code}`).join(',');
+  const contentType = String(req.headers['content-type'] || 'none').split(';')[0].trim();
+  const keys = Object.keys(req.body || {}).join(',') || 'none';
+  console.warn(`[auth] login rejected: ${fields} content-type=${contentType} body-keys=${keys}`);
+}
+
 // POST /api/auth/login — rate limited, timing-equalized
 router.post('/login', asyncH(async (req, res) => {
   const body = req.body || {};
@@ -17,9 +30,16 @@ router.post('/login', asyncH(async (req, res) => {
   } catch (e) {
     // still count toward IP rate to blunt spraying with garbage payloads
     A.recordLoginFailure(req, '');
+    logValidationReject(req, e);
     throw e;
   }
-  const password = V.str(body.password, 'password', { required: true, max: 200 });
+  let password;
+  try {
+    password = V.str(body.password, 'password', { required: true, max: 200 });
+  } catch (e) {
+    logValidationReject(req, e);
+    throw e;
+  }
 
   const blocked = A.checkLoginRate(req, email);
   if (blocked) throw new ApiError(429, blocked, 'rate_limited');

@@ -44,7 +44,20 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password) => {
     const res = await api('/auth/login', { method: 'POST', body: { email, password } });
-    await loadMeta();
+    try {
+      await loadMeta();
+    } catch (err) {
+      // The password was accepted (200 + Set-Cookie) but the very next
+      // authenticated call is 401: the browser did not keep/send the session
+      // cookie (e.g. cross-site cookie blocking). Say so, instead of surfacing
+      // a generic "Authentication required" as if the credentials were wrong.
+      if (err && err.status === 401) {
+        const sessionErr = new Error('Session not established');
+        sessionErr.code = 'session_not_established';
+        throw sessionErr;
+      }
+      throw err;
+    }
     return res.user;
   }, [loadMeta]);
 

@@ -361,6 +361,38 @@ origins (comma-separated) when the SPA is hosted separately. Neon suspends idle 
 pool tolerates dropped idle clients and reconnects transparently; expect a short cold-start
 latency on the first request after inactivity.
 
+### 9.6 Split hosting (static SPA + separate API) — same-origin `/api` required
+
+If the SPA and the API are deployed on **different hosts** (for example two Render services),
+the browser treats them as different sites, and mobile Safari blocks the session cookie set by the
+API host (third-party cookie blocking). Login then looks successful but every later call returns
+`401`. **Serve the API through the SPA's own origin instead**, so the session cookie is
+first-party:
+
+| Where | Setting |
+|---|---|
+| Static site (SPA) — Redirects/Rewrites | **1st rule:** Source `/api/*` → Destination `https://<api-host>/api/*` → action **Rewrite**. **2nd rule (keep):** `/*` → `/index.html` → **Rewrite**. The API rule must be above the catch-all. |
+| Static site (SPA) — Environment | **Do not set `VITE_API_URL`** (leave it unset). The client then calls relative `/api/...` URLs. Rebuild after changing it, because Vite reads it at build time. |
+| API service — Environment | `NODE_ENV=production`, `CLIENT_ORIGIN=https://<spa-host>`, `JWT_SECRET`, `DATABASE_URL`. Leave `COOKIE_SAMESITE` unset (production default `Lax`, correct for same-origin) and keep `COOKIE_SECURE` at its default (`true`). |
+
+Verify after deploying (the logged-out bootstrap must be `401`, and a login with a missing field
+must be a `400` that names the field):
+
+```bash
+curl -si https://<spa-host>/api/meta/bootstrap | head -1                 # HTTP/2 401
+curl -si -X POST https://<spa-host>/api/auth/login \
+  -H 'Content-Type: application/json' -d '{"password":"x"}' | grep -E '^HTTP|email'   # 400, email=required
+curl -si -X POST https://<spa-host>/api/auth/login -H 'Content-Type: application/json' \
+  -H 'Origin: https://<spa-host>' -d '{"email":"<your account>","password":"<your password>"}' \
+  | grep -iE '^HTTP|set-cookie'                                          # 200 + Set-Cookie for <spa-host>
+```
+
+**Login diagnostics.** A rejected login logs one line such as
+`[auth] login rejected: email=required content-type=application/json body-keys=email,password`
+(field names only — never the values). `GET /api/... -> 401` lines carry a `reason=` code
+(`no_session_cookie`, `token_invalid`, `token_expired`, `session_revoked`, `account_disabled`) so a
+missing cookie is distinguishable from an expired or revoked session.
+
 ## 10. Known limitations (honest status)
 
 - **i18n depth:** navigation, auth, dashboard, calendar chrome, status badges and roles are
