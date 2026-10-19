@@ -19,16 +19,6 @@ import {
   IconShield,
 } from '../components/icons.jsx';
 
-const DEMO_ACCOUNTS = [
-  { label: 'Receptionist', email: 'reception@alamal.demo', clinic: 'Al Amal Clinic' },
-  { label: 'Doctor', email: 'lina@alamal.demo', clinic: 'Al Amal Clinic' },
-  { label: 'Clinic Owner', email: 'owner@alamal.demo', clinic: 'Al Amal Clinic' },
-  { label: 'Accountant', email: 'accounting@alamal.demo', clinic: 'Al Amal Clinic' },
-  { label: 'Owner (2nd clinic)', email: 'owner@cedar.demo', clinic: 'Cedar Heights' },
-  { label: 'Platform Admin', email: 'admin@clinicportal.local', clinic: 'Platform' },
-];
-
-const DEMO_PASSWORD = 'Demo1234!';
 
 export default function Login() {
   const { user, login } = useAuth();
@@ -294,28 +284,6 @@ export default function Login() {
 
           <div className="login-help">{t('login.help')}</div>
 
-          <details className="demo-accounts">
-            <summary>{t('login.demoHint')}</summary>
-
-            <div className="demo-chip-list">
-              {DEMO_ACCOUNTS.map((d) => (
-                <button
-                  key={d.email}
-                  type="button"
-                  className="demo-chip"
-                  title={`${d.email} · ${DEMO_PASSWORD}`}
-                  onClick={() => {
-                    setEmail(d.email);
-                    setPassword(DEMO_PASSWORD);
-                    setError('');
-                  }}
-                >
-                  <b>{d.label}</b>
-                  <span className="muted small">{d.clinic}</span>
-                </button>
-              ))}
-            </div>
-          </details>
 
           <div className="login-foot">
             © {new Date().getFullYear()} Denti Clinics — Management Suite
