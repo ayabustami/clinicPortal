@@ -14,7 +14,8 @@
     "db:check": "node scripts/db-check.js",
     "db:import": "node scripts/import-sqlite.js",
     "db:import:dry": "node scripts/import-sqlite.js --dry-run",
-    "db:verify": "node scripts/verify-import.js"
+    "db:verify": "node scripts/verify-import.js",
+    "email:check": "node scripts/email-check.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -28,5 +29,8 @@
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^10.1.7",
     "pg": "^8.23.1"
+  },
+  "engines": {
+    "node": ">=18.17"
   }
 }

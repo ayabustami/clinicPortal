@@ -21,6 +21,7 @@ export default function ChangePasswordCard({ userEmail }) {
   const [sending, setSending] = useState(false);
   const [sentTo, setSentTo] = useState('');
   const [devCode, setDevCode] = useState('');
+  const [deliveryIssue, setDeliveryIssue] = useState('');
   const [cooldown, setCooldown] = useState(0);
   const [busy, setBusy] = useState(false);
 
@@ -31,13 +32,18 @@ export default function ChangePasswordCard({ userEmail }) {
   }, [cooldown]);
 
   async function sendCode() {
-    setError(''); setSending(true);
+    setError(''); setSending(true); setDeliveryIssue('');
     try {
       const res = await api('/auth/change-password/request-code', { method: 'POST', body: {} });
       setSentTo(res.sent_to || userEmail || '');
       setDevCode(res.dev_code || '');
       setCooldown(60);
-      toast.success(t('sec.codeSent').replace('{email}', res.sent_to || userEmail || ''));
+      const delivery = res.email_delivery || null;
+      if (delivery && delivery.deliverable === false) {
+        setDeliveryIssue(delivery.reason || 'misconfigured');
+      } else {
+        toast.success(t('sec.codeSent').replace('{email}', res.sent_to || userEmail || ''));
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -59,7 +65,7 @@ export default function ChangePasswordCard({ userEmail }) {
       });
       toast.success(t('sec.success'));
       setCurrent(''); setPw1(''); setPw2(''); setCode('');
-      setSentTo(''); setDevCode(''); setCooldown(0);
+      setSentTo(''); setDevCode(''); setDeliveryIssue(''); setCooldown(0);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -72,6 +78,13 @@ export default function ChangePasswordCard({ userEmail }) {
       <div className="card-title"><IconShield size={16} /> {t('sec.title')}</div>
       <div className="muted small mb-12">{t('sec.desc')}</div>
       {error && <div className="form-error" role="alert">{error}</div>}
+      {deliveryIssue && (
+        <div className="form-warn" role="alert">
+          {t(deliveryIssue === 'no_provider' ? 'login.mailNoProvider'
+            : deliveryIssue === 'undeliverable_recipient' ? 'login.mailDemoRecipient'
+              : 'login.mailMisconfigured')}
+        </div>
+      )}
       {devCode && (
         <div className="form-info form-info-dev" role="status">
           {t('sec.devCodeHint').replace('{code}', devCode)}
@@ -115,10 +128,10 @@ export default function ChangePasswordCard({ userEmail }) {
           >
             {sending ? t('login.sending')
               : cooldown > 0 ? t('sec.resendIn').replace('{s}', cooldown)
-                : t('sec.sendCode')}
+                : sentTo && !deliveryIssue ? t('login.resent') : t('sec.sendCode')}
           </button>
         </div>
-        {sentTo && <div className="field-hint">{t('sec.codeSent').replace('{email}', sentTo)}</div>}
+        {sentTo && !deliveryIssue && <div className="field-hint">{t('sec.codeSent').replace('{email}', sentTo)}</div>}
 
         <button className="btn btn-primary mt-12" disabled={busy}>
           {busy ? t('login.resetting') : t('sec.change')}

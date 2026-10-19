@@ -229,10 +229,12 @@ clinic-portal/
   live per email at a time. Request throttling: 60s resend cooldown, 10 codes/hour per
   email+purpose, 60 requests/hour per IP; `forgot-password` always answers `ok` (no account
   enumeration). Changing a password requires **both** the current password and the emailed code.
-  Delivery is pluggable (`EMAIL_TRANSPORT=console|http` — Resend-compatible HTTP or server-log
-  fallback; see `server/.env.example`). Outside production (or with the explicit demo-only flag
-  `EMAIL_DEV_EXPOSE_CODES=YES`) the code is echoed in the API response so demo deployments
-  without a mail provider keep working.
+  Delivery is pluggable (`EMAIL_TRANSPORT=console|http|smtp` — Resend-compatible HTTP, SMTP, or
+  server-log fallback; see `server/.env.example` and §9.7). `console` never delivers to an inbox,
+  so the API response says so (`email_delivery.deliverable:false`) and the UI warns instead of
+  claiming “code sent”; `/api/health` exposes `email.transport`/`email.delivers`. Outside
+  production (or with the explicit demo-only flag `EMAIL_DEV_EXPOSE_CODES=YES`) the code is echoed
+  in the API response so demo deployments without a mail provider keep working.
 - **Login hardening:** timing-safe verification (dummy bcrypt compare for unknown emails), rate
   limits (8 failures per email+IP, 40 per IP per 10 min → HTTP 429), generic error messages.
 - **CSRF/origin defense:** state-changing requests are checked against `Sec-Fetch-Site`
@@ -393,13 +395,69 @@ curl -si -X POST https://<spa-host>/api/auth/login -H 'Content-Type: application
 (`no_session_cookie`, `token_invalid`, `token_expired`, `session_revoked`, `account_disabled`) so a
 missing cookie is distinguishable from an expired or revoked session.
 
+### 9.7 Password-reset / verification email does not arrive
+
+The application never silently pretends an email was sent. If no mail provider is configured,
+the default transport is `console`: the full message (including the 6-digit code) is printed to
+the **server log** and the UI now shows a warning instead of “Code sent to …”.
+
+Check the effective configuration from the deployment itself:
+
+```bash
+curl -s https://<your-host>/api/health
+# {"ok":true,"service":"clinic-portal-api","email":{"transport":"console","delivers":false}}
+```
+
+`delivers:false` means **no email will ever arrive** until the environment is fixed. Full details
+(which variable is missing, SMTP-on-Render warning, bad `APP_URL`) are printed at boot and on every
+send attempt in the service logs (`[email] …` lines).
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `email.transport` is `console`, logs show `[email:console]` with the code | No provider configured (default) | Set the Resend variables below and redeploy |
+| `email.delivers:false`, logs show `EMAIL_HTTP_API_KEY is not set` / `EMAIL_HTTP_URL …` | Provider half-configured | Add the missing variable(s) |
+| `[email] send failed via http: provider responded 401/403/422` | Bad API key, or `EMAIL_FROM` uses a domain that is not verified with the provider | Create a new key / verify the sending domain, fix `EMAIL_FROM` |
+| `[email] not sent … demo/reserved domain` | Recipient is a demo account (`@alamal.demo`, `@cedar.demo`, `@clinicportal.local`) or another reserved domain — it can never receive mail | Use a real address, or read the code from the logs |
+| SMTP configured, requests time out, logs mention ports 25/465/587 | **Render blocks outbound SMTP on free services** (port 25 on every plan) | Use `EMAIL_TRANSPORT=http` with Resend — do not use Gmail SMTP on Render |
+| Mail provider accepted the message but nothing arrives | Spam folder, unverified sender domain, Resend sandbox sender (`onboarding@resend.dev` only delivers to the Resend account owner) | Verify the domain, check spam, use a real `EMAIL_FROM` |
+
+Working Resend configuration (Render → Environment):
+
+```env
+EMAIL_TRANSPORT=http
+EMAIL_HTTP_URL=https://api.resend.com/emails
+EMAIL_HTTP_API_KEY=re_xxxxxxxx
+EMAIL_FROM=Denti Clinics <no-reply@your-verified-domain.com>
+APP_URL=https://clinicportal.onrender.com
+```
+
+Then redeploy (environment changes need a service restart) and verify with:
+
+```bash
+cd server && npm run email:check                       # status only
+cd server && npm run email:check -- --to you@example.com   # sends a real test message
+```
+
+Operational notes:
+
+- **Immediate recovery without a provider:** open Render → your service → **Logs**, search for
+  `[email:console]`, and copy `Your verification code: 123456` into the “Forgot password” dialog.
+  Codes expire after 15 minutes and are single-use.
+- `EMAIL_DEV_EXPOSE_CODES=YES` echoes the code in the API/UI. **Demo only** — anyone could take
+  over an account, so never enable it on a real deployment.
+- Request throttling: 60-second resend cooldown, 10 codes/hour per email, 60/hour per IP. A 429
+  response is intentional; wait before retrying.
+- Changing a password (My account / Settings) requires the emailed code too, so it is affected by
+  the same configuration.
+
 ## 10. Known limitations (honest status)
 
 - **i18n depth:** navigation, auth, dashboard, calendar chrome, status badges and roles are
   translated (en/ar) with full RTL layout flip; deeper page-level strings remain English
   (infrastructure + dictionary in `client/src/i18n.jsx` is ready to extend).
 - Single role per user; one clinic per user; no per-doctor working schedules (clinic-wide hours +
-  leave blocks); no password self-reset (owner resets; sessions revoked on reset).
+  leave blocks). Password self-reset exists (emailed one-time code, sessions revoked); clinic owners
+  can additionally reset staff passwords from Staff, which also revokes live sessions.
 - Invoices: no discounts/tax/voiding; `paid` invoices fully locked by design (corrections via new
   invoice).
 - No WebSocket live refresh. PostgreSQL connections are pooled (`PG_POOL_MAX`, default 10) —

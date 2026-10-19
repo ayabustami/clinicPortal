@@ -48,14 +48,27 @@ function createApp() {
     next();
   });
 
-  // Health check with DB probe (PostgreSQL round-trip; never exposes connection details)
+  // Health check with DB probe (PostgreSQL round-trip; never exposes connection details).
+  // `email` is a safe two-field summary: transport ("console" = nothing is
+  // emailed) and whether it is actually configured to deliver. No secrets and
+  // no reason strings are exposed publicly; full details go to the logs.
   app.get('/api/health', async (req, res) => {
     let dbOk = false;
     try {
       const { ping } = require('./db');
       dbOk = await ping();
     } catch { dbOk = false; }
-    res.status(dbOk ? 200 : 503).json({ ok: dbOk, service: 'clinic-portal-api' });
+    let email = null;
+    try {
+      const { emailStatus } = require('./services/email');
+      const status = emailStatus();
+      email = { transport: status.transport, delivers: status.delivers };
+    } catch { /* diagnostics must never break the health check */ }
+    res.status(dbOk ? 200 : 503).json({
+      ok: dbOk,
+      service: 'clinic-portal-api',
+      ...(email ? { email } : {}),
+    });
   });
 
   app.use('/api/auth', require('./routes/auth.routes'));

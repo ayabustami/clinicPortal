@@ -6,7 +6,27 @@ const V = require('../util/validate');
 const A = require('../auth');
 const { audit } = require('../util/audit');
 const { issueCode, verifyCode, exposeDevCode, maskEmail } = require('../util/codes');
-const { sendVerificationEmail } = require('../services/email');
+const {
+  sendVerificationEmail, emailStatus, undeliverableReason,
+} = require('../services/email');
+
+/**
+ * Safe, non-secret description of whether the requested code can actually be
+ * emailed. It is computed from the configuration and the typed address only —
+ * never from whether the account exists — so it cannot be used for account
+ * enumeration. The SPA uses it to stop claiming "code sent" when it was not.
+ */
+function deliveryInfo(email) {
+  const mail = emailStatus();
+  const recipientIssue = undeliverableReason(email);
+  const deliverable = mail.delivers && !recipientIssue;
+  let reason = null;
+  if (!deliverable) {
+    if (!mail.delivers) reason = mail.transport === 'console' ? 'no_provider' : 'misconfigured';
+    else reason = 'undeliverable_recipient';
+  }
+  return { transport: mail.transport, deliverable, reason };
+}
 
 /**
  * Diagnostic line for a rejected login payload. Logs only the failing field,
@@ -84,6 +104,7 @@ router.post('/forgot-password', asyncH(async (req, res) => {
   if (blocked) throw new ApiError(429, blocked, 'rate_limited');
   A.recordCodeSend(req, email, 'password_reset');
 
+  const delivery = deliveryInfo(email);
   const user = await db.q1('SELECT * FROM users WHERE lower(email) = lower(?) AND is_active = 1', [email]);
   let devCode;
   if (user) {
@@ -91,13 +112,22 @@ router.post('/forgot-password', asyncH(async (req, res) => {
     const sent = await sendVerificationEmail({
       to: user.email, code, purpose: 'password_reset', name: user.full_name,
     });
-    if (!sent) console.error(`[auth] password-reset email could not be delivered to ${maskEmail(user.email)}`);
+    if (!sent) console.error(`[auth] password-reset email could not be delivered to ${maskEmail(user.email)} — see [email] lines above`);
     if (exposeDevCode()) devCode = code;
     await audit(db, { clinicId: user.clinic_id, userId: user.id,
       action: 'auth.password_reset.requested', entity: 'user', entityId: user.id });
+  } else {
+    // No account (or inactive) — answers stay identical, but the operator
+    // should still be able to see why no email went out.
+    console.warn(`[auth] password-reset requested for ${maskEmail(email)}: no active account with this address — nothing sent`);
   }
   // Identical response whether or not the account exists.
-  res.json({ ok: true, sent_to: maskEmail(email), ...(devCode ? { dev_code: devCode } : {}) });
+  res.json({
+    ok: true,
+    sent_to: maskEmail(email),
+    email_delivery: delivery,
+    ...(devCode ? { dev_code: devCode } : {}),
+  });
 }));
 
 // POST /api/auth/reset-password — consume a password_reset/account_setup code
@@ -168,10 +198,15 @@ router.post('/change-password/request-code', A.requireAuth, asyncH(async (req, r
   const sent = await sendVerificationEmail({
     to: email, code, purpose: 'password_change', name: req.user.full_name,
   });
-  if (!sent) console.error(`[auth] password-change email could not be delivered to ${maskEmail(email)}`);
+  if (!sent) console.error(`[auth] password-change email could not be delivered to ${maskEmail(email)} — see [email] lines above`);
   await audit(db, { clinicId: req.user.clinic_id, userId: req.user.id,
     action: 'auth.password_change.code_sent', entity: 'user', entityId: req.user.id });
-  res.json({ ok: true, sent_to: maskEmail(email), ...(exposeDevCode() ? { dev_code: code } : {}) });
+  res.json({
+    ok: true,
+    sent_to: maskEmail(email),
+    email_delivery: deliveryInfo(email),
+    ...(exposeDevCode() ? { dev_code: code } : {}),
+  });
 }));
 
 // POST /api/auth/change-password — current password AND an emailed one-time

@@ -3,8 +3,14 @@ const config = require('./config');
 const { migrate } = require('./migrate');
 const { createApp } = require('./app');
 const { closeDb } = require('./db');
+const { logEmailConfig } = require('./services/email');
 
 async function main() {
+  // Make a missing/broken mail provider obvious at boot (password reset,
+  // password change and staff invitations all depend on it). This runs before
+  // the database work so a mail problem is visible even if the DB is down.
+  logEmailConfig();
+
   // Apply pending PostgreSQL migrations before accepting traffic.
   await migrate();
 

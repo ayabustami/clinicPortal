@@ -25,6 +25,7 @@ export default function ForgotPassword({ initialEmail = '', onClose }) {
   const [sending, setSending] = useState(false);
   const [sentTo, setSentTo] = useState('');
   const [devCode, setDevCode] = useState('');
+  const [deliveryIssue, setDeliveryIssue] = useState('');
   const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {
@@ -35,12 +36,20 @@ export default function ForgotPassword({ initialEmail = '', onClose }) {
 
   async function sendCode() {
     if (!email.trim()) { setError(t('login.email')); return; }
-    setError(''); setSending(true);
+    setError(''); setSending(true); setDeliveryIssue('');
     try {
       const res = await api('/auth/forgot-password', { method: 'POST', body: { email: email.trim() } });
       setSentTo(res.sent_to || email.trim());
       setDevCode(res.dev_code || '');
-      setInfo(t('login.codeSent').replace('{email}', res.sent_to || email.trim()));
+      const delivery = res.email_delivery || null;
+      if (delivery && delivery.deliverable === false) {
+        // Never claim "sent" when the server could not hand the message to a
+        // mail provider (or the address is a demo/reserved domain).
+        setInfo('');
+        setDeliveryIssue(delivery.reason || 'misconfigured');
+      } else {
+        setInfo(t('login.codeSent').replace('{email}', res.sent_to || email.trim()));
+      }
       setCooldown(60);
     } catch (err) {
       setError(err.message);
@@ -93,6 +102,13 @@ export default function ForgotPassword({ initialEmail = '', onClose }) {
         <form id="forgot-pw-form" onSubmit={submit}>
           <div className="muted small mb-12">{t('login.forgotSub')}</div>
           {error && <div className="form-error" role="alert">{error}</div>}
+          {deliveryIssue && (
+            <div className="form-warn" role="alert">
+              {t(deliveryIssue === 'no_provider' ? 'login.mailNoProvider'
+                : deliveryIssue === 'undeliverable_recipient' ? 'login.mailDemoRecipient'
+                  : 'login.mailMisconfigured')}
+            </div>
+          )}
           {info && <div className="form-info" role="status">{info}</div>}
           {devCode && (
             <div className="form-info form-info-dev" role="status">
@@ -105,7 +121,14 @@ export default function ForgotPassword({ initialEmail = '', onClose }) {
               <span className="in-ico"><IconMail size={16} /></span>
               <input
                 className="input" type="email" autoComplete="username" dir="ltr" required
-                value={email} onChange={(e) => setEmail(e.target.value)}
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setDeliveryIssue('');
+                  setInfo('');
+                  setSentTo('');
+                  setDevCode('');
+                }}
                 placeholder="you@clinic.com"
               />
             </div>
@@ -126,10 +149,10 @@ export default function ForgotPassword({ initialEmail = '', onClose }) {
             >
               {sending ? t('login.sending')
                 : cooldown > 0 ? t('login.resendIn').replace('{s}', cooldown)
-                  : sentTo ? t('login.resent') : t('login.sendCode')}
+                  : sentTo && !deliveryIssue ? t('login.resent') : t('login.sendCode')}
             </button>
           </div>
-          {sentTo && <div className="field-hint">{t('login.codeSent').replace('{email}', sentTo)}</div>}
+          {sentTo && !deliveryIssue && <div className="field-hint">{t('login.codeSent').replace('{email}', sentTo)}</div>}
 
           <div className="form-row">
             <Field label={t('login.newPassword')}>
