@@ -13,5 +13,8 @@
     "test": "npm --prefix server test",
     "build": "npm --prefix client run build",
     "start": "npm --prefix server start"
+  },
+  "dependencies": {
+    "nodemailer": "^10.1.7"
   }
 }

@@ -18,11 +18,42 @@
  * into request handlers.
  */
 const config = require('../config');
+const nodemailer = require('nodemailer');
 
-const FROM = process.env.EMAIL_FROM || 'Denti Clinics <no-reply@clinicportal.local>';
+const FROM =
+  process.env.EMAIL_FROM ||
+  process.env.SMTP_USER ||
+  'Denti Clinics';
+
 const TRANSPORT = String(
-  process.env.EMAIL_TRANSPORT || (process.env.EMAIL_HTTP_URL ? 'http' : 'console')
+  process.env.EMAIL_TRANSPORT ||
+  (process.env.EMAIL_HTTP_URL ? 'http' : 'console')
 ).toLowerCase();
+
+let smtpTransporter;
+
+function getSmtpTransporter() {
+  if (smtpTransporter) return smtpTransporter;
+
+  const host = process.env.SMTP_HOST;
+  const port = Number(process.env.SMTP_PORT || 587);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+
+  if (!host || !user || !pass) {
+    throw new Error('SMTP configuration is incomplete');
+  }
+
+  smtpTransporter = nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    requireTLS: port === 587,
+    auth: { user, pass },
+  });
+
+  return smtpTransporter;
+}
 
 /** Public app origin used for links inside emails. */
 function appUrl() {
@@ -48,6 +79,17 @@ async function sendMail({ to, subject, text, html }) {
         console.error(`[email] http transport failed: ${res.status} ${String(detail).slice(0, 300)}`);
         return false;
       }
+      return true;
+    }
+      if (TRANSPORT === 'smtp') {
+      await getSmtpTransporter().sendMail({
+        from: FROM,
+        to,
+        subject,
+        text,
+        html,
+      });
+
       return true;
     }
     // console transport
