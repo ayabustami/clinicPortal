@@ -10,7 +10,7 @@
     "migrate": "node src/migrate.js",
     "seed": "node src/seed.js",
     "backup": "node scripts/backup.js",
-    "test": "node --test tests/",
+    "test": "node --test tests/*.test.js",
     "db:check": "node scripts/db-check.js",
     "db:import": "node scripts/import-sqlite.js",
     "db:import:dry": "node scripts/import-sqlite.js --dry-run",

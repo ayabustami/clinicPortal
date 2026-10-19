@@ -93,7 +93,24 @@ router.post('/users', requireAuth, requireClinic, requireRole('owner'), asyncH(a
     return newId;
   });
   const user = await db.q1('SELECT * FROM users WHERE id = ?', [userId]);
-  res.status(201).json({ user: publicUser(user) });
+
+  // Account-setup invitation: the new member gets an email with a one-time
+  // code that verifies their address and lets them set their own password.
+  // Sending problems never fail the creation itself.
+  let invite = { sent: false };
+  try {
+    const { issueCode, exposeDevCode } = require('../util/codes');
+    const { sendVerificationEmail } = require('../services/email');
+    const { code } = await issueCode(db, { userId, email, purpose: 'account_setup' });
+    invite.sent = await sendVerificationEmail({
+      to: email, code, purpose: 'account_setup', name: full_name, clinicName: req.clinic.name,
+    });
+    if (exposeDevCode()) invite.dev_code = code;
+  } catch (err) {
+    console.error('[staff] account-setup invite failed:', err.message);
+  }
+
+  res.status(201).json({ user: publicUser(user), invite });
 }));
 
 router.put('/users/:id', requireAuth, requireClinic, requireRole('owner'), asyncH(async (req, res) => {

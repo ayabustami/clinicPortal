@@ -40,3 +40,9 @@ export const IconPaperclip = (p) => <I {...p}><path d="M20 11.5l-8 8a5 5 0 0 1-7
 export const IconGlobe = (p) => <I {...p}><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.4 3.8 5.3 3.8 8.5S14.5 18.1 12 20.5c-2.5-2.4-3.8-5.3-3.8-8.5S9.5 5.9 12 3.5z"/></I>;
 export const IconShield = (p) => <I {...p}><path d="M12 3l7.5 3v5.5c0 4.5-3 8-7.5 9.5-4.5-1.5-7.5-5-7.5-9.5V6z"/><path d="M9 12l2 2 4-4"/></I>;
 export const IconGrid = (p) => <I {...p}><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></I>;
+export const IconUser = (p) => <I {...p}><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c1-3.6 3.9-6 7.5-6s6.5 2.4 7.5 6"/></I>;
+export const IconMail = (p) => <I {...p}><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7l8.5 6 8.5-6"/></I>;
+export const IconKey = (p) => <I {...p}><circle cx="8" cy="14.5" r="4"/><path d="M11 11.5L20 2.5M17 5.5l2.5 2.5M14.5 8l2.5 2.5"/></I>;
+export const IconEye = (p) => <I {...p}><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></I>;
+export const IconEyeOff = (p) => <I {...p}><path d="M4 4l16 16"/><path d="M9.5 6.2A9.7 9.7 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-3.2 3.8M6.4 8.2A17.4 17.4 0 0 0 2.5 12S6 18.5 12 18.5c1 0 1.9-.1 2.8-.4"/></I>;
+export const IconSend = (p) => <I {...p}><path d="M21 3L10.5 13.5M21 3l-6.5 18-4-8-8-4z"/></I>;

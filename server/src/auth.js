@@ -218,10 +218,81 @@ function recordLoginSuccess(req, email) {
   loginAttempts.delete(key);
 }
 
+/* ------------- verification-code send throttling (in-memory, fixed window) ------------- */
+
+const codeSendAttempts = new Map(); // key -> { lastAt, count, resetAt }
+const otpIpAttempts = new Map();    // ip  -> { count, resetAt }
+const CODE_RESEND_COOLDOWN_MS = 60 * 1000;
+const CODE_MAX_SENDS_PER_HOUR = 10;
+const OTP_IP_MAX_PER_HOUR = 60;
+
+/**
+ * Throttle for forgot-password / change-password / request-code sends.
+ * Returns an error message when the send should be blocked, else null.
+ * Applies uniformly for existing AND unknown emails (a429 must never reveal
+ * whether an account exists).
+ */
+function checkCodeSendRate(req, email, purpose) {
+  const now = Date.now();
+  const ipBlocked = checkOtpIpRate(req);
+  if (ipBlocked) return ipBlocked;
+  const key = `${String(email || '').toLowerCase()}|${purpose}`;
+  const rec = codeSendAttempts.get(key);
+  if (rec && rec.resetAt < now) codeSendAttempts.delete(key);
+  if (rec) {
+    if (now - rec.lastAt < CODE_RESEND_COOLDOWN_MS) {
+      return 'Please wait a moment before requesting another code.';
+    }
+    if (rec.count >= CODE_MAX_SENDS_PER_HOUR) {
+      return 'Too many codes requested. Please try again later.';
+    }
+  }
+  return null;
+}
+
+/** Per-IP budget shared by every verification-code endpoint (send + verify). */
+function checkOtpIpRate(req) {
+  const now = Date.now();
+  const ip = clientIp(req);
+  const ipRec = otpIpAttempts.get(ip);
+  if (ipRec && ipRec.resetAt < now) otpIpAttempts.delete(ip);
+  if (ipRec && ipRec.count >= OTP_IP_MAX_PER_HOUR) {
+    return 'Too many requests from this network. Please try again later.';
+  }
+  return null;
+}
+
+function recordOtpIp(req) {
+  const now = Date.now();
+  const ip = clientIp(req);
+  const ipRec = otpIpAttempts.get(ip) || { count: 0, resetAt: now + 3600 * 1000 };
+  ipRec.count += 1;
+  otpIpAttempts.set(ip, ipRec);
+}
+
+function recordCodeSend(req, email, purpose) {
+  const now = Date.now();
+  recordOtpIp(req);
+  const key = `${String(email || '').toLowerCase()}|${purpose}`;
+  const rec = codeSendAttempts.get(key) || { count: 0, lastAt: 0, resetAt: now + 3600 * 1000 };
+  rec.count += 1;
+  rec.lastAt = now;
+  codeSendAttempts.set(key, rec);
+}
+
+/** After a code is consumed successfully, allow an immediate fresh send. */
+function clearCodeSend(email, purpose) {
+  const key = `${String(email || '').toLowerCase()}|${purpose}`;
+  const rec = codeSendAttempts.get(key);
+  if (rec) rec.lastAt = 0;
+}
+
 /** For tests and process reuse. */
 function resetRateLimits() {
   loginAttempts.clear();
   ipAttempts.clear();
+  codeSendAttempts.clear();
+  otpIpAttempts.clear();
 }
 
 /* ---------------- CSRF / origin defense for cookie-auth requests ---------------- */
@@ -268,5 +339,6 @@ module.exports = {
   signToken, setAuthCookie, clearAuthCookie, bumpTokenVersion,
   requireAuth, requireRole, requireClinic, publicUser,
   checkLoginRate, recordLoginFailure, recordLoginSuccess, resetRateLimits,
+  checkCodeSendRate, recordCodeSend, clearCodeSend, checkOtpIpRate, recordOtpIp,
   originGuard, clientIp, randomId,
 };

@@ -692,9 +692,14 @@ test('settings: currency update flows through bootstrap + new invoices', async (
 test('sessions: logout + change-password revoke old cookies; wrong current password rejected', async () => {
   const omar = await login('omar@alamal.demo');
   const omar2 = await login('omar@alamal.demo'); // second session
-  const badChange = await omar.post('/api/auth/change-password', { current_password: 'WrongPass1!', new_password: 'BrandNew123!' });
+  // missing verification code -> 400 (email-verified change)
+  const noCode = await omar.post('/api/auth/change-password', { current_password: 'Demo1234!', new_password: 'BrandNew123!' });
+  assert.equal(noCode.status, 400);
+  const badChange = await omar.post('/api/auth/change-password', { current_password: 'WrongPass1!', new_password: 'BrandNew123!', code: '000000' });
   assert.equal(badChange.status, 400);
-  const change = await omar.post('/api/auth/change-password', { current_password: 'Demo1234!', new_password: 'BrandNew123!' });
+  const send1 = await omar.post('/api/auth/change-password/request-code', {});
+  assert.equal(send1.status, 200, JSON.stringify(send1.data));
+  const change = await omar.post('/api/auth/change-password', { current_password: 'Demo1234!', new_password: 'BrandNew123!', code: send1.data.dev_code });
   assert.equal(change.status, 200);
   // omar's own cookie was re-issued -> still valid
   const meNew = await omar.get('/api/auth/me');
@@ -704,7 +709,10 @@ test('sessions: logout + change-password revoke old cookies; wrong current passw
   assert.equal(meOld.status, 401, 'old session must be revoked after password change');
   // login with new password works; restore original password for other tests
   const fresh = await (async () => { const c = makeClient(); const r = await c.post('/api/auth/login', { email: 'omar@alamal.demo', password: 'BrandNew123!' }); assert.equal(r.status, 200); return c; })();
-  await fresh.post('/api/auth/change-password', { current_password: 'BrandNew123!', new_password: 'Demo1234!' });
+  const send2 = await fresh.post('/api/auth/change-password/request-code', {});
+  assert.equal(send2.status, 200, JSON.stringify(send2.data));
+  const restore = await fresh.post('/api/auth/change-password', { current_password: 'BrandNew123!', new_password: 'Demo1234!', code: send2.data.dev_code });
+  assert.equal(restore.status, 200);
   // logout revokes
   const out = await fresh.post('/api/auth/logout', {});
   assert.equal(out.status, 200);

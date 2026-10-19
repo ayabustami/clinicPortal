@@ -222,6 +222,17 @@ clinic-portal/
   (`COOKIE_SAMESITE`/`COOKIE_SECURE`): production defaults to `SameSite=Lax`+`Secure`; development
   uses `SameSite=None`+`Secure` so HTTPS sandbox previews embedded in cross-site iframes can keep
   the session (browsers drop Lax cookies in third-party frames — verified by regression test).
+- **Email verification codes** (`email_verification_codes`, migration `pg/011`): password reset
+  (forgot password), password change confirmation (My account / Settings) and account-setup
+  invitations all use single-use 6-digit codes. Codes are stored as SHA-256 hashes (never
+  plaintext), expire after 15 minutes, allow 5 verification attempts, and at most one code is
+  live per email at a time. Request throttling: 60s resend cooldown, 10 codes/hour per
+  email+purpose, 60 requests/hour per IP; `forgot-password` always answers `ok` (no account
+  enumeration). Changing a password requires **both** the current password and the emailed code.
+  Delivery is pluggable (`EMAIL_TRANSPORT=console|http` — Resend-compatible HTTP or server-log
+  fallback; see `server/.env.example`). Outside production (or with the explicit demo-only flag
+  `EMAIL_DEV_EXPOSE_CODES=YES`) the code is echoed in the API response so demo deployments
+  without a mail provider keep working.
 - **Login hardening:** timing-safe verification (dummy bcrypt compare for unknown emails), rate
   limits (8 failures per email+IP, 40 per IP per 10 min → HTTP 429), generic error messages.
 - **CSRF/origin defense:** state-changing requests are checked against `Sec-Fetch-Site`
@@ -242,12 +253,12 @@ clinic-portal/
 
 | Area | Endpoints |
 |---|---|
-| Auth | `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`, `POST /auth/change-password` |
+| Auth | `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`, `POST /auth/forgot-password`, `POST /auth/reset-password`, `POST /auth/change-password/request-code`, `POST /auth/change-password` (current password **+** emailed code) |
 | Bootstrap | `GET /meta/bootstrap` (user, clinic incl. **currency**, doctors incl. color, services, branches incl. is_active, `doctor_profile` for doctors) |
 | Health | `GET /health` (probes the database) |
 | Dashboard | `GET /dashboard/summary` (revenue only for financial roles) |
 | Patients | `GET/POST /patients`, `GET/PUT /patients/:id`, `GET /patients/:id/records`, `GET /patients/:id/timeline` |
-| Staff | `GET/POST /staff/doctors`, `PUT /staff/doctors/:id`, `GET/POST /staff/users`, `PUT /staff/users/:id` |
+| Staff | `GET/POST /staff/doctors`, `PUT /staff/doctors/:id`, `GET/POST /staff/users` (sends an account-setup invitation email), `PUT /staff/users/:id` |
 | Services | `GET/POST /services`, `PUT /services/:id` |
 | Branches | `GET/POST /branches`, `PUT /branches/:id` |
 | Appointments | `GET/POST /appointments`, `GET/PUT /appointments/:id` (no status), `PATCH /appointments/:id/status` |
