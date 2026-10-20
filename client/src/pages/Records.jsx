@@ -1,14 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useI18n } from '../i18n.jsx';
-import { api } from '../api.js';
+import { api, API_BASE } from '../api.js';
 import { cachedGet, invalidate, invalidateTimelines } from '../apiCache.js';
 import { useAuth, useClinicMeta } from '../auth.jsx';
 import { Spinner, EmptyState, Modal, Field, useToast, useConfirm } from '../components/ui.jsx';
 import { fmtDateShort } from '../format.js';
 import { IconPlus, IconPill, IconCheck, IconEdit, IconPaperclip } from '../components/icons.jsx';
 import AppointmentModal from '../components/AppointmentModal.jsx';
-import { API_BASE } from '../api';
 
 
 const EMPTY_RX = { medication: '', dosage: '', frequency: '', duration: '', notes: '' };
@@ -319,7 +318,7 @@ function RecordAttachments({ recordId, canEdit, onChanged }) {
  * gets explicit next actions. Booking is never automatic: the next unscheduled
  * plan session is only PREFILLED into the appointment form.
  */
-function NextActions({ rec, onClose }) {
+function NextActions({ rec, onClose, onChanged }) {
   const navigate = useNavigate();
   const toast = useToast();
   const [next, setNext] = useState(undefined); // undefined=loading | null=none | {plan,session}
@@ -498,7 +497,7 @@ export function RecordDetail({ id, onClose, onEdit, onChanged }) {
             </>
           )}
           <RecordAttachments recordId={rec.id} canEdit={canWrite} onChanged={onChanged} />
-          {rec.status === 'approved' && <NextActions rec={rec} onClose={onClose} />}
+          {rec.status === 'approved' && <NextActions rec={rec} onClose={onClose} onChanged={onChanged} />}
         </>
       )}
     </Modal>
