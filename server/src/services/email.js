@@ -47,12 +47,9 @@ function getSmtpTransporter() {
   smtpTransporter = nodemailer.createTransport({
     host,
     port,
-      secure: port === 465,
-  requireTLS: port === 587,
-  connectionTimeout: 20000,
-  greetingTimeout: 20000,
-  socketTimeout: 30000,
-  auth: { user, pass },
+    secure: port === 465,
+    requireTLS: port === 587,
+    auth: { user, pass },
   });
 
   return smtpTransporter;
