@@ -62,9 +62,98 @@ function appUrl() {
   return raw || 'http://localhost:5173';
 }
 
+async function sendWithGmailApi({ to, subject, text, html }) {
+  const {
+    GMAIL_CLIENT_ID,
+    GMAIL_CLIENT_SECRET,
+    GMAIL_REFRESH_TOKEN,
+  } = process.env;
+
+  if (!GMAIL_CLIENT_ID || !GMAIL_CLIENT_SECRET || !GMAIL_REFRESH_TOKEN) {
+    throw new Error('Gmail API configuration is incomplete');
+  }
+
+  // Exchange the refresh token for a short-lived access token.
+  const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: GMAIL_CLIENT_ID,
+      client_secret: GMAIL_CLIENT_SECRET,
+      refresh_token: GMAIL_REFRESH_TOKEN,
+      grant_type: 'refresh_token',
+    }),
+  });
+
+  const tokenData = await tokenResponse.json();
+
+  if (!tokenResponse.ok || !tokenData.access_token) {
+    throw new Error(
+      `Gmail token exchange failed: ${tokenData.error || tokenResponse.status}`
+    );
+  }
+
+  // Build a MIME message with plain-text and HTML alternatives.
+  const boundary = `clinicportal_${Date.now()}`;
+  const encodeBase64 = (value) =>
+    Buffer.from(value, 'utf8').toString('base64').replace(/.{1,76}/g, '$&\r\n');
+
+  const encodedSubject = `=?UTF-8?B?${Buffer.from(subject, 'utf8').toString('base64')}?=`;
+  const safeFrom = FROM.replace(/[\r\n]/g, '');
+  const safeTo = String(to).replace(/[\r\n]/g, '');
+
+  const mime = [
+    `From: ${safeFrom}`,
+    `To: ${safeTo}`,
+    `Subject: ${encodedSubject}`,
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/plain; charset=UTF-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    encodeBase64(text),
+    `--${boundary}`,
+    'Content-Type: text/html; charset=UTF-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    encodeBase64(html),
+    `--${boundary}--`,
+    '',
+  ].join('\r\n');
+
+  const raw = Buffer.from(mime, 'utf8').toString('base64url');
+
+  const sendResponse = await fetch(
+    'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${tokenData.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ raw }),
+    }
+  );
+
+  if (!sendResponse.ok) {
+    const detail = await sendResponse.text().catch(() => '');
+    console.error(
+      `[email] Gmail API failed: ${sendResponse.status} ${detail.slice(0, 300)}`
+    );
+    return false;
+  }
+
+  return true;
+}
+
 async function sendMail({ to, subject, text, html }) {
   if (!to) return false;
   try {
+    if (TRANSPORT === 'gmail') {
+  return await sendWithGmailApi({ to, subject, text, html });
+}
     if (TRANSPORT === 'http') {
       const res = await fetch(process.env.EMAIL_HTTP_URL, {
         method: 'POST',
